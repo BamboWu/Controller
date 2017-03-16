@@ -1,0 +1,5 @@
+erase
+loadfile ../_build/STM32F103xx.hex
+r
+g
+q

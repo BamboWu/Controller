@@ -3,6 +3,7 @@
 .cproject
 .project
 .settings
+.metadata
 _build
 !_build/**.bin
 !_build/**.hex
