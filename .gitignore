@@ -1,0 +1,9 @@
+**~
+**.swp
+.cproject
+.project
+.settings
+_build
+!_build/**.bin
+!_build/**.hex
+!_build/**.out
