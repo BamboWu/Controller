@@ -51,10 +51,11 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-static GPIO_InitTypeDef  GPIO_InitStruct; //GPIO初始化用到的结构体
+TIM_HandleTypeDef Tim7Handle;             //TIM7的结构体
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);            //系统时钟配置函数
+void Indication_Config(void);             //程序运行指示灯配置函数
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -65,7 +66,7 @@ void SystemClock_Config(void);            //系统时钟配置函数
   */
 int main(void)
 {
-  uint8_t i=0;
+  //uint8_t i=0;
   /* This sample code shows how to use GPIO HAL API to toggle LED2 IO
     in an infinite loop. */
 
@@ -82,48 +83,33 @@ int main(void)
   if(HAL_Init()!=HAL_OK)
 	  SEGGER_RTT_printf(0,"\r\n[HAL_Init]error\r\n");//HAL初始化失败打印信息
 
-  /* Configure the system clock to 64 MHz */
+  /* Configure the system clock to 72 MHz */
   SystemClock_Config();
 
-  /* -1- Enable GPIO Clock (to be able to program the configuration registers) */
-  __HAL_RCC_GPIOA_CLK_ENABLE();  //打开GPIOA口的时钟
-  __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO复用功能管理器的时钟
-  __HAL_AFIO_REMAP_SWJ_NOJTAG(); //禁用JTAG，这样PA15方可作为GPIO使用
-
-  /* -2- Configure IO in output push-pull mode to drive external LEDs */
-  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;  //推挽输出
-  GPIO_InitStruct.Pull  = GPIO_PULLUP;          //上拉
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
-
-  GPIO_InitStruct.Pin = GPIO_PIN_15;      //引脚号
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct); //初始化PA15引脚
+  Indication_Config();
 
   SEGGER_RTT_printf(0,"\r\n[init]OK\r\n");//打印信息提示初始化完成
-  
-  HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);//PA15输出低电平，点亮L6
-
   /* -3- Toggle IO in an infinite loop */
   while (1)
   {
     /* Insert delay 100 ms */
     //HAL_Delay(100);
-    SEGGER_RTT_printf(0,"\r\n[loop%d]Press any key to toggle LEDs.\r\n",i++);
-    SEGGER_RTT_WaitKey();  //等待输入
+    //SEGGER_RTT_printf(0,"\r\n[loop%d]Press any key to toggle LEDs.\r\n",i++);
+    //SEGGER_RTT_WaitKey();  //等待输入
 
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);//翻转PA15电平，使L6交替亮灭
   }
 }
 
 /**
   * @brief  System Clock Configuration
   *         The system Clock is configured as follow : 
-  *            System Clock source            = PLL (HSI)
-  *            SYSCLK(Hz)                     = 64000000
-  *            HCLK(Hz)                       = 64000000
+  *            System Clock source            = PLL (HSE)
+  *            SYSCLK(Hz)                     = 72000000
+  *            HCLK(Hz)                       = 72000000
   *            AHB Prescaler                  = 1
   *            APB1 Prescaler                 = 2
   *            APB2 Prescaler                 = 1
-  *            PLLMUL                         = 16
+  *            PLLMUL                         = 9
   *            Flash Latency(WS)              = 2
   * @param  None
   * @retval None
@@ -134,18 +120,18 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef oscinitstruct = {0};
   
   /* Configure PLL ------------------------------------------------------*/
-  /* PLL configuration: PLLCLK = (HSI / 2) * PLLMUL = (8 / 2) * 16 = 64 MHz */
-  /* PREDIV1 configuration: PREDIV1CLK = PLLCLK / HSEPredivValue = 64 / 1 = 64 MHz */
-  /* Enable HSI and activate PLL with HSi_DIV2 as source */
-  oscinitstruct.OscillatorType  = RCC_OSCILLATORTYPE_HSI;
-  oscinitstruct.HSEState        = RCC_HSE_OFF;
+  /* PLL configuration: PLLCLK = HSE * PLLMUL = 8  * 9 = 72 MHz */
+  /* PREDIV1 configuration: PREDIV1CLK = PLLCLK / HSEPredivValue = 72 / 1 = 72 MHz */
+  /* Enable HSE and activate PLL with HSE_DIV1 as source */
+  oscinitstruct.OscillatorType  = RCC_OSCILLATORTYPE_HSE;
+  oscinitstruct.HSEState        = RCC_HSE_ON;
   oscinitstruct.LSEState        = RCC_LSE_OFF;
-  oscinitstruct.HSIState        = RCC_HSI_ON;
+  oscinitstruct.HSIState        = RCC_HSI_OFF;
   oscinitstruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   oscinitstruct.HSEPredivValue    = RCC_HSE_PREDIV_DIV1;
   oscinitstruct.PLL.PLLState    = RCC_PLL_ON;
-  oscinitstruct.PLL.PLLSource   = RCC_PLLSOURCE_HSI_DIV2;
-  oscinitstruct.PLL.PLLMUL      = RCC_PLL_MUL16;
+  oscinitstruct.PLL.PLLSource   = RCC_PLLSOURCE_HSE;
+  oscinitstruct.PLL.PLLMUL      = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&oscinitstruct)!= HAL_OK)
   {
     /* Initialization Error */
@@ -164,6 +150,65 @@ void SystemClock_Config(void)
     /* Initialization Error */
     while(1); 
   }
+}
+
+/**
+  * @brief  运行指示灯配置
+  *         运行指示灯（L6）以1Hz的频率闪烁，指示程序正在运行。
+  *         使用的资源如下 : 
+  *            PA15：配置推挽输出
+  *            TIM7：预分频   72000000/60000 = 1200Hz
+  *                  定时上溢 600
+  *                  上溢中断频率 1200/600   = 2Hz
+  *                  中断优先级  3，3（最低）
+  * @param  None
+  * @retval None
+  */
+void Indication_Config(void)
+{
+  GPIO_InitTypeDef  GPIO_InitStruct = {0}; //GPIO初始化用到的结构体
+  
+  /* Configure GPIO ------------------------------------------------------*/
+
+  /* -1- Enable GPIO Clock (to be able to program the configuration registers) */
+  __HAL_RCC_GPIOA_CLK_ENABLE();  //打开GPIOA口的时钟
+  __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO复用功能管理器的时钟
+  __HAL_AFIO_REMAP_SWJ_NOJTAG(); //禁用JTAG，这样PA15方可作为GPIO使用
+
+  /* -2- Configure IO in output push-pull mode to drive external LEDs */
+  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;  //推挽输出
+  GPIO_InitStruct.Pull  = GPIO_PULLUP;          //上拉
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
+  GPIO_InitStruct.Pin = GPIO_PIN_15;      //引脚号
+
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct); //初始化PA15引脚
+
+  HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);  //PA15输出低电平，点亮L6
+
+  /* Configure TIM  ------------------------------------------------------*/
+
+  /* -1- Set TIM7 instance */
+  Tim7Handle.Instance = TIM7;
+
+  /* -2- Initialize TIM7 peripheral as follows:
+       + Period = 600 - 1
+       + Prescaler = 60000) - 1
+       + ClockDivision = 0
+       + Counter direction = Up
+  */
+  Tim7Handle.Init.Period            = 600 - 1;
+  Tim7Handle.Init.Prescaler         = 60000 - 1;
+  Tim7Handle.Init.ClockDivision     = 0;
+  Tim7Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
+  Tim7Handle.Init.RepetitionCounter = 0;
+
+  if (HAL_TIM_Base_Init(&Tim7Handle) != HAL_OK)
+	  SEGGER_RTT_printf(0,"\r\n[Indication_Config]TIM Init fail\r\n");
+
+  /* -3- Start the TIM Base generation in interrupt mode */
+  if (HAL_TIM_Base_Start_IT(&Tim7Handle) != HAL_OK)
+	  SEGGER_RTT_printf(0,"\r\n[Indication_Config]TIM IT Init fail\r\n");
+
 }
 
 #ifdef  USE_FULL_ASSERT

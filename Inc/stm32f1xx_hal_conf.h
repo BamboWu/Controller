@@ -57,7 +57,7 @@
 #define HAL_CORTEX_MODULE_ENABLED //Cortex内核相关驱动
 /* #define HAL_CRC_MODULE_ENABLED */
 /* #define HAL_DAC_MODULE_ENABLED */
-/* #define HAL_DMA_MODULE_ENABLED */
+#define HAL_DMA_MODULE_ENABLED    //直接存储器访问相关驱动
 /* #define HAL_ETH_MODULE_ENABLED */
 #define HAL_FLASH_MODULE_ENABLED  //芯片内Flash存储相关的驱动
 #define HAL_GPIO_MODULE_ENABLED   //GPIO相关的驱动
@@ -77,7 +77,7 @@
 /* #define HAL_SMARTCARD_MODULE_ENABLED */
 /* #define HAL_SPI_MODULE_ENABLED */
 /* #define HAL_SRAM_MODULE_ENABLED */
-/* #define HAL_TIM_MODULE_ENABLED */
+#define HAL_TIM_MODULE_ENABLED   //定时器/计数器外设的相关驱动
 /* #define HAL_UART_MODULE_ENABLED */
 /* #define HAL_USART_MODULE_ENABLED */
 /* #define HAL_WWDG_MODULE_ENABLED */

@@ -53,6 +53,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+extern TIM_HandleTypeDef Tim7Handle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -175,6 +176,26 @@ void SysTick_Handler(void)
 {
 }*/
 
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim == &Tim7Handle)
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);//翻转PA15电平，使L6交替亮灭
+}
+
+/**
+  * @brief  This function handles TIM7 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void TIM7_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&Tim7Handle);
+}
 
 /**
   * @}

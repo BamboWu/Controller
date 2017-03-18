@@ -63,6 +63,7 @@ ASM_SOURCE_FILES  = $(abspath $(DEVICE_PATH)/Source/Templates/gcc/startup_stm32f
 #source common to all targets
 C_SOURCE_FILES  = $(abspath ../Src/main.c)          #程序的主文件 
 C_SOURCE_FILES += $(abspath ../Src/stm32f1xx_it.c)  #中断处理函数
+C_SOURCE_FILES += $(abspath ../Src/stm32f1xx_hal_msp.c)    #HAL底层函数实现
 C_SOURCE_FILES += $(abspath $(DEVICE_PATH)/Source/Templates/system_stm32f1xx.c)
 #CMSIS提供的源文件用于配置芯片
 #sources of HAL (Hardware Abstract Layer) # HAL驱动均为ST公司提供
@@ -70,6 +71,10 @@ C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal.c)        #HAL
 C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_rcc.c)    #时钟管理
 C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_cortex.c) #内核管理
 C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_gpio.c)   #GPIO管理
+C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_tim.c)    #Timer管理
+C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_tim_ex.c) #Timer管理额外功能函数
+C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_dma.c)    #直接存数器访问
+C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_rcc_ex.c) #时钟管理额外功能函数
 #sources for JLink tool -- RTT (Real-Time Terminal)
 C_SOURCE_FILES += $(abspath ../../RTT/RTT/SEGGER_RTT.c)             #RTT调试
 C_SOURCE_FILES += $(abspath ../../RTT/RTT/SEGGER_RTT_printf.c)      #RTT调试
