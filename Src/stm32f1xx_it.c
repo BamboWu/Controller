@@ -184,7 +184,26 @@ void SysTick_Handler(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &Tim7Handle)
+  {
+    static char hsecond = 0;
+    static char minute = 0;
+    static char hour = 0;
     HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);//翻转PA15电平，使L6交替亮灭
+    if(hsecond < 119)
+	hsecond++;
+    else
+    {
+	hsecond = 0;
+	if(minute < 59)
+	    minute++;
+	else
+	{
+            minute = 0;
+	    hour++;
+	}
+	SEGGER_RTT_printf(0,"%dh%dm\r\n",hour,minute);
+    }
+  }//if (htim == &Tim7Handle)
 }
 
 /**
