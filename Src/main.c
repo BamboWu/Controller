@@ -66,7 +66,7 @@ void Indication_Config(void);             //程序运行指示灯配置函数
   */
 int main(void)
 {
-  //uint8_t i=0;
+  uint8_t i=0;
   /* This sample code shows how to use GPIO HAL API to toggle LED2 IO
     in an infinite loop. */
 
@@ -88,14 +88,43 @@ int main(void)
 
   Indication_Config();
 
+  valve_init();
+
   SEGGER_RTT_printf(0,"\r\n[init]OK\r\n");//打印信息提示初始化完成
   /* -3- Toggle IO in an infinite loop */
   while (1)
   {
+    char key;
+    uint8_t channel = 0;
     /* Insert delay 100 ms */
     //HAL_Delay(100);
-    //SEGGER_RTT_printf(0,"\r\n[loop%d]Press any key to toggle LEDs.\r\n",i++);
-    //SEGGER_RTT_WaitKey();  //等待输入
+    SEGGER_RTT_printf(0,"\r\n[loop%d]\r\nChannel:",i++);
+    key = SEGGER_RTT_WaitKey();  //等待输入
+    if('1'<=key&&key<='9')
+	    channel = key - '0';
+    else if('a'<=key&&key<='c')
+	    channel = key - 'a' + 10;
+    else if('A'<=key&&key<='C')
+	    channel = key - 'A' + 10;
+    else
+	    continue;  //error to choose channel
+    SEGGER_RTT_printf(0,"\r\nOn press O, Off press X:");
+    key = SEGGER_RTT_WaitKey();  //等待输入
+    if(key == 'o' || key == 'O')
+	    valve_channel_on(channel);
+    else if(key == 'x' || key == 'X')
+    {
+	    SEGGER_RTT_printf(0,"\r\nHigh press H, Low press L:");
+	    key = SEGGER_RTT_WaitKey();
+	    if(key == 'h' || key == 'H')
+		    valve_channel_off(channel,1);
+	    else if(key == 'l' || key == 'L')
+		    valve_channel_off(channel,0);
+	    else
+		    continue;  //error to choose High or Low
+    }
+    else
+	    continue;  //error to choose On or Off
 
   }
 }
@@ -128,7 +157,7 @@ void SystemClock_Config(void)
   oscinitstruct.LSEState        = RCC_LSE_OFF;
   oscinitstruct.HSIState        = RCC_HSI_OFF;
   oscinitstruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  oscinitstruct.HSEPredivValue    = RCC_HSE_PREDIV_DIV1;
+  oscinitstruct.HSEPredivValue  = RCC_HSE_PREDIV_DIV1;
   oscinitstruct.PLL.PLLState    = RCC_PLL_ON;
   oscinitstruct.PLL.PLLSource   = RCC_PLLSOURCE_HSE;
   oscinitstruct.PLL.PLLMUL      = RCC_PLL_MUL9;
@@ -179,7 +208,7 @@ void Indication_Config(void)
   GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;  //推挽输出
   GPIO_InitStruct.Pull  = GPIO_PULLUP;          //上拉
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
-  GPIO_InitStruct.Pin = GPIO_PIN_15;      //引脚号
+  GPIO_InitStruct.Pin   = GPIO_PIN_15;          //引脚号
 
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct); //初始化PA15引脚
 
