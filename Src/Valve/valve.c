@@ -2,6 +2,10 @@
 
 static uint32_t m_valve_state = 0;  //内部记录电磁阀通路输出状态的变量
 
+valve_param_t valve_params[12];     //记录电磁阀通路通断参数的变量
+valve_param_t valve_param;     //记录电磁阀通路通断参数的变量
+valve_t valve_test[12];     //记录电磁阀通路通断参数的变量
+
 /**@brief 用于设置电磁阀输出的函数
  *
  * @param[in] bank      指定根据374芯片划分的区间，0对应芯片U14，1为U58，2是U912
@@ -36,22 +40,22 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
 
   switch(bank)
   {
-    case BANK0: toset16 = m_valve_state & 0X000000FF;  //BANK0对应最低8个通路
-		toclr16 = ~m_valve_state & 0X000000FF;
+    case BANK0: toset16 = ~m_valve_state & 0X000000FF;    //BANK0对应最低8个通路
+		toclr16 =  m_valve_state & 0X000000FF;
 		break;
-    case BANK1: toset16 = (m_valve_state & 0X0000FF00)>>8;  //BANK1对应中间8个通路
-		toclr16 = (~m_valve_state & 0X0000FF00)>>8;
+    case BANK1: toset16 = (~m_valve_state & 0X0000FF00)>>8;  //BANK1对应中间8个通路
+		toclr16 =  (m_valve_state & 0X0000FF00)>>8;
 		break;
-    case BANK2: toset16 = (m_valve_state & 0X00FF0000)>>16;  //BANK2对应最高8个通路
-		toclr16 = (~m_valve_state & 0X00FF0000)>>16;
+    case BANK2: toset16 = (~m_valve_state & 0X00FF0000)>>16; //BANK2对应最高8个通路
+		toclr16 =  (m_valve_state & 0X00FF0000)>>16;
 		break;
     default   : toset16 = toclr16 = 0X0000;
   }
 
   SEGGER_RTT_printf(0,"\r\n[do_valve_set]toset16=0X%4x,toclr16=0X%4x\r\n",toset16,toclr16);
 
-  HAL_GPIO_WritePin(GPIOA,toclr16,GPIO_PIN_RESET); //将低电平的脚复位
-  HAL_GPIO_WritePin(GPIOA,toset16,GPIO_PIN_SET);   //将高电平的脚置位
+  HAL_GPIO_WritePin(GPIOA,toclr16,GPIO_PIN_RESET); //将要变低电平的脚复位
+  HAL_GPIO_WritePin(GPIOA,toset16,GPIO_PIN_SET);   //将要变高电平的脚置位
 
   switch(bank)
   {
@@ -105,6 +109,9 @@ void valve_init(void)
   GPIO_InitStruct.Pin   = GPIO_PIN_5;//引脚号
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct); //初始化PC5引脚
   HAL_GPIO_WritePin(GPIOC,GPIO_InitStruct.Pin,GPIO_PIN_RESET);  //PC5输出低电平
+
+  // 从flash中读取电磁阀通断的参数
+  valve_params_load();
 }
 
 
@@ -172,4 +179,75 @@ void valve_channel_off(uint8_t channel, uint8_t Hi_Lo)
              do_valve_set(BANK0,~mask8,~mask8);
 	     break;
   }
+}
+
+/**@brief 用于从flash中读取电磁阀通路参数的函数
+ */
+void valve_params_load(void)
+{
+    uint8_t channel,on_off_id;
+    uint32_t flash_addr;
+    valve_param_t *p_valve_param;
+
+    //遍历填入12个通道参数
+    for(channel=1,flash_addr=FLASH_ADDR;channel<=12;channel++)
+    {
+	p_valve_param = &valve_params[channel];
+	//为每个通道遍历填入(ON_OFF_MAX)对输出关闭设定
+	for(on_off_id=0;on_off_id<ON_OFF_MAX;on_off_id++)
+	{
+	    p_valve_param->on_offs[on_off_id][0] = *(uint16_t*)flash_addr;
+	    //给第channel通道的第on_off_id对设定的开启时间载入参数
+	    flash_addr += 2;
+	    p_valve_param->on_offs[on_off_id][1] = *(uint16_t*)flash_addr;
+	    //给第channel通道的第on_off_id对设定的关闭时间载入参数
+	    flash_addr += 2;
+	}
+	p_valve_param->high_duration = *(uint16_t*)flash_addr;
+	//给第channel通道的高压输出持续时间载入参数
+	flash_addr += 2; //多留半字(16bit/2byte)作为每个通道的分隔
+	flash_addr += 2; //多留半字(16bit/2byte)作为每个通道的分隔
+    }
+}
+
+/**@brief 用于将电磁阀通路参数存入flash的函数
+ */
+void valve_params_store(void)
+{
+    uint8_t channel,on_off_id;
+    uint32_t flash_addr;
+    valve_param_t *p_valve_param;
+
+    HAL_FLASH_Unlock();              //写flash之前，必须先解锁flash
+    FLASH_PageErase(FLASH_ADDR);     //存入新数据前，必先擦除原有数据所在的页
+    //遍历存入12个通道参数
+    for(channel=1,flash_addr=FLASH_ADDR;channel<=12;channel++)
+    {
+	p_valve_param = &valve_params[channel];
+	//为每个通道遍历存入(ON_OFF_MAX)对 输出关闭时间
+	for(on_off_id=0;on_off_id<ON_OFF_MAX;on_off_id++)
+	{
+	    //HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+	    //    	      flash_addr,
+	    //    	      (uint64_t)(*(uint32_t*)(&valve_params[channel].on_offs[on_off_id][0])));
+	    ////将第channel通道的第on_off_id对设定的开启关闭时间参数存入
+	    //flash_addr += 4;
+	    HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
+			      flash_addr,
+			      p_valve_param->on_offs[on_off_id][0]);
+	    //将第channel通道的第on_off_id对设定的开启时间参数存入
+	    flash_addr += 2;
+	    HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
+			      flash_addr,
+			      p_valve_param->on_offs[on_off_id][1]);
+	    //将第channel通道的第on_off_id对设定的关闭时间参数存入
+	    flash_addr += 2;
+	}
+	HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+			  flash_addr,
+			  p_valve_param->high_duration);
+	//将第channel通道的高压输出持续时间参数存入
+	flash_addr += 4; 
+    }
+    HAL_FLASH_Lock();                //写flash之后，必须再锁上flash
 }
