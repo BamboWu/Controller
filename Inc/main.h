@@ -43,6 +43,7 @@
 #include "stm32f1xx_hal.h"
 #include "SEGGER_RTT.h"
 #include "valve.h"
+#include "coder.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

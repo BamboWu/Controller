@@ -75,11 +75,15 @@ C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_tim.c)    #Timer管理
 C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_tim_ex.c) #Timer管理额外功能函数
 C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_dma.c)    #直接存数器访问
 C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_rcc_ex.c) #时钟管理额外功能函数
+C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_flash.c)  #flash管理功能函数
+C_SOURCE_FILES += $(abspath $(HAL_PATH)/Src/stm32f1xx_hal_flash_ex.c) #flash管理额外功能函数
 #sources for JLink tool -- RTT (Real-Time Terminal)
 C_SOURCE_FILES += $(abspath ../../RTT/RTT/SEGGER_RTT.c)             #RTT调试
 C_SOURCE_FILES += $(abspath ../../RTT/RTT/SEGGER_RTT_printf.c)      #RTT调试
 #sources for valve control #控制电磁阀的函数源文件
 C_SOURCE_FILES += $(abspath ../Src/Valve/valve.c)  #电磁阀控制函数 
+#sources for coder control #与编码器交互的函数源文件
+C_SOURCE_FILES += $(abspath ../Src/Coder/coder.c)  #电磁阀控制函数 
 
 #includes common to all targets
 INC_PATHS  = -I$(abspath $(DRIVER_PATH)/CMSIS/Include) #包含CMSIS提供的头文件

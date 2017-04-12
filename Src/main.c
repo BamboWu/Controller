@@ -89,6 +89,7 @@ int main(void)
   Indication_Config();
 
   valve_init();
+  coder_init(2000,0);
 
   SEGGER_RTT_printf(0,"\r\n[init]OK\r\n");//打印信息提示初始化完成
   /* -3- Toggle IO in an infinite loop */
@@ -195,25 +196,6 @@ void SystemClock_Config(void)
   */
 void Indication_Config(void)
 {
-  GPIO_InitTypeDef  GPIO_InitStruct = {0}; //GPIO初始化用到的结构体
-  
-  /* Configure GPIO ------------------------------------------------------*/
-
-  /* -1- Enable GPIO Clock (to be able to program the configuration registers) */
-  __HAL_RCC_GPIOA_CLK_ENABLE();  //打开GPIOA口的时钟
-  __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO复用功能管理器的时钟
-  __HAL_AFIO_REMAP_SWJ_NOJTAG(); //禁用JTAG，这样PA15方可作为GPIO使用
-
-  /* -2- Configure IO in output push-pull mode to drive external LEDs */
-  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;  //推挽输出
-  GPIO_InitStruct.Pull  = GPIO_PULLUP;          //上拉
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
-  GPIO_InitStruct.Pin   = GPIO_PIN_15;          //引脚号
-
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct); //初始化PA15引脚
-
-  HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);  //PA15输出低电平，点亮L6
-
   /* Configure TIM  ------------------------------------------------------*/
 
   /* -1- Set TIM7 instance */

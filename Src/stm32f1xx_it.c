@@ -54,6 +54,7 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 extern TIM_HandleTypeDef Tim7Handle;
+extern TIM_HandleTypeDef Tim8Handle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -183,7 +184,11 @@ void SysTick_Handler(void)
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  if (htim == &Tim7Handle)
+  /*if (htim == &Tim8Handle)
+  {
+    SEGGER_RTT_printf(0,"[Tim8]%d arrive\r\n",Tim8Handle.Instance.CNT);
+  }//if (htim == &Tim8Handle)
+  else */if (htim == &Tim7Handle)
   {
     static char hsecond = 0;
     static char minute = 0;
@@ -203,7 +208,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 	SEGGER_RTT_printf(0,"%dh%dm\r\n",hour,minute);
     }
-  }//if (htim == &Tim7Handle)
+  }//else if (htim == &Tim7Handle)
+}
+
+/**
+  * @brief  Input Capture callback in non blocking mode
+  * @param  htim : TIM IC handle
+  * @retval None
+  */
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim == &Tim8Handle)
+  {
+    SEGGER_RTT_printf(0,"[Tim8]%d arrive\r\n",Tim8Handle.Instance->CNT);
+  }
 }
 
 /**
@@ -216,6 +234,40 @@ void TIM7_IRQHandler(void)
   HAL_TIM_IRQHandler(&Tim7Handle);
 }
 
+/**
+  * @brief  This function handles TIM8 Capture/Compare interrupt request.
+  * @param  None
+  * @retval None
+  */
+void TIM8_CC_IRQHandler(void)
+{
+  SEGGER_RTT_printf(0,"\r\n[TIM8_CC_IRQ]\r\n");
+  HAL_TIM_IRQHandler(&Tim8Handle);
+}
+
+/**
+  * @brief EXTI line detection callbacks
+  * @param GPIO_Pin: Specifies the pins connected EXTI line
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if(GPIO_Pin == GPIO_PIN_15)
+  {
+    SEGGER_RTT_printf(0,"\r\n[EXTI15]coder on\r\n");
+    coder_on();
+  }
+}
+
+/**
+  * @brief  This function handles external lines 10 to 15 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void EXTI15_10_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_15);
+}
 /**
   * @}
   */

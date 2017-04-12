@@ -105,11 +105,16 @@ void HAL_PPP_MspDeInit(void)
   */
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 {
+  GPIO_InitTypeDef  GPIO_InitStruct = {0}; //GPIO初始化用到的结构体
+  
   if(htim->Instance == TIM7)
   { 
       /*##-1- Enable peripheral clock #############################*/
       /* TIM7 Peripheral clock enable */
       __HAL_RCC_TIM7_CLK_ENABLE();
+      __HAL_RCC_GPIOA_CLK_ENABLE();  //打开GPIOA口的时钟
+      __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO复用功能管理器的时钟
+      __HAL_AFIO_REMAP_SWJ_NOJTAG(); //禁用JTAG，这样PA15方可作为GPIO使用
   
       /*##-2- Configure the NVIC for TIM7 ####################################*/
       /* Set the TIM7 priority */
@@ -117,6 +122,72 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 
       /* Enable the TIMx global Interrupt */
       HAL_NVIC_EnableIRQ(TIM7_IRQn);
+
+      /*##-3- Configure GPIO #################################################*/
+      /* Configure IO in output push-pull mode to drive external LEDs */
+      GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;  //推挽输出
+      GPIO_InitStruct.Pull  = GPIO_PULLUP;          //上拉
+      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
+      GPIO_InitStruct.Pin   = GPIO_PIN_15;          //引脚号
+
+      HAL_GPIO_Init(GPIOA, &GPIO_InitStruct); //初始化PA15引脚
+
+      HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);  //PA15输出低电平，点亮L6
+  }
+  //else if(htim->Instance == TIM8)
+  //{
+  //    /*##-1- Enable peripheral clock #############################*/
+  //    /* TIM8 Peripheral clock enable */
+  //    __HAL_RCC_GPIOB_CLK_ENABLE();  //打开GPIOB口的时钟
+  //    __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO引脚功能复用的时钟
+  //    __HAL_RCC_TIM8_CLK_ENABLE();   //打开TIM8的时钟
+  //    __HAL_RCC_GPIOC_CLK_ENABLE();  //打开GPIOC口的时钟
+  //
+  //    /*##-2- Configure the NVIC for TIM8 ####################################*/
+  //    /* Set the TIM8 priority */
+  //    //HAL_NVIC_SetPriority(TIM8_IRQn, 0, 3); //TIM8是编码器模式工作的，无中断
+  //    /* Set the EXTI15 priority */
+  //    HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 3); 
+
+  //    /* Enable the TIMx global Interrupt */
+  //    //HAL_NVIC_EnableIRQ(TIM8_IRQn); //TIM8是编码器模式工作的，无中断
+  //    /* Enable the EXTI15 Interrupt */
+  //    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn); 
+  //}
+
+}
+/**
+  * @brief Initializes the TIM Encoder Interface MSP
+  * @param htim: TIM handle pointer
+  * @retval None
+  */
+void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef *htim)
+{
+  GPIO_InitTypeDef  GPIO_InitStruct = {0}; //GPIO初始化用到的结构体
+  
+  if(htim->Instance == TIM8)
+  {
+      /*##-1- Enable peripheral clock #############################*/
+      /* TIM8 Peripheral clock enable */
+      __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO引脚功能复用的时钟
+      __HAL_RCC_TIM8_CLK_ENABLE();   //打开TIM8的时钟
+      __HAL_RCC_GPIOC_CLK_ENABLE();  //打开GPIOC口的时钟
+  
+      /*##-2- Configure the NVIC for TIM8 ####################################*/
+      /* Set the TIM8 priority */
+      HAL_NVIC_SetPriority(TIM8_CC_IRQn, 2, 3); 
+
+      /* Enable the TIM8 Capture/Compare Interrupt */
+      HAL_NVIC_EnableIRQ(TIM8_CC_IRQn); 
+
+      /*##-3- Configure GPIO #################################################*/
+      /* Configure IO in output push-pull mode to drive external LEDs */
+      GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;      //输入
+      GPIO_InitStruct.Pull  = GPIO_PULLDOWN;        //下拉
+      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
+      GPIO_InitStruct.Pin   = GPIO_PIN_6|GPIO_PIN_7;//引脚号
+
+      HAL_GPIO_Init(GPIOC, &GPIO_InitStruct); //初始化PC15引脚
   }
 
 }

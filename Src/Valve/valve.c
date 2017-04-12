@@ -44,10 +44,10 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
 		toclr16 =  m_valve_state & 0X000000FF;
 		break;
     case BANK1: toset16 = (~m_valve_state & 0X0000FF00)>>8;  //BANK1对应中间8个通路
-		toclr16 =  (m_valve_state & 0X0000FF00)>>8;
+		toclr16 = ( m_valve_state & 0X0000FF00)>>8;
 		break;
     case BANK2: toset16 = (~m_valve_state & 0X00FF0000)>>16; //BANK2对应最高8个通路
-		toclr16 =  (m_valve_state & 0X00FF0000)>>16;
+		toclr16 = ( m_valve_state & 0X00FF0000)>>16;
 		break;
     default   : toset16 = toclr16 = 0X0000;
   }
@@ -227,11 +227,6 @@ void valve_params_store(void)
 	//为每个通道遍历存入(ON_OFF_MAX)对 输出关闭时间
 	for(on_off_id=0;on_off_id<ON_OFF_MAX;on_off_id++)
 	{
-	    //HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
-	    //    	      flash_addr,
-	    //    	      (uint64_t)(*(uint32_t*)(&valve_params[channel].on_offs[on_off_id][0])));
-	    ////将第channel通道的第on_off_id对设定的开启关闭时间参数存入
-	    //flash_addr += 4;
 	    HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
 			      flash_addr,
 			      p_valve_param->on_offs[on_off_id][0]);
