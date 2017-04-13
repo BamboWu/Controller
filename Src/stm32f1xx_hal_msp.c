@@ -39,6 +39,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
+#include "SEGGER_RTT.h"
 
 /** @addtogroup STM32F1xx_HAL_Driver
   * @{
@@ -175,10 +176,10 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef *htim)
   
       /*##-2- Configure the NVIC for TIM8 ####################################*/
       /* Set the TIM8 priority */
-      HAL_NVIC_SetPriority(TIM8_CC_IRQn, 2, 3); 
+      //HAL_NVIC_SetPriority(TIM8_CC_IRQn, 2, 3); 
 
       /* Enable the TIM8 Capture/Compare Interrupt */
-      HAL_NVIC_EnableIRQ(TIM8_CC_IRQn); 
+      //HAL_NVIC_EnableIRQ(TIM8_CC_IRQn); 
 
       /*##-3- Configure GPIO #################################################*/
       /* Configure IO in output push-pull mode to drive external LEDs */
@@ -191,6 +192,31 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef *htim)
   }
 
 }
+
+/**
+  * @brief  Initializes the TIM Output Compare MSP.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_OC_MspInit(TIM_HandleTypeDef *htim)
+{
+  if(htim->Instance == TIM8)
+  {
+      /*##-1- Enable peripheral clock #############################*/
+      /* TIM8 Peripheral clock enable */
+      __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO引脚功能复用的时钟
+      __HAL_RCC_TIM8_CLK_ENABLE();   //打开TIM8的时钟
+  
+      /*##-2- Configure the NVIC for TIM8 ####################################*/
+      /* Set the TIM8 priority */
+      HAL_NVIC_SetPriority(TIM8_CC_IRQn, 2, 3); 
+
+      /* Enable the TIM8 Capture/Compare Interrupt */
+      HAL_NVIC_EnableIRQ(TIM8_CC_IRQn); 
+
+  }
+}
+
 /**
   * @}
   */

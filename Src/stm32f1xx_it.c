@@ -218,9 +218,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   */
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(htim);
+  /* NOTE : This function Should not be modified, when the callback is needed,
+            the __HAL_TIM_OC_DelayElapsedCallback could be implemented in the user file
+   */
+  SEGGER_RTT_printf(0,"\r\n[IC_CaptureCallback]\r\n");
+}
+
+/**
+  * @brief  Output Compare callback in non blocking mode 
+  * @param  htim : TIM OC handle
+  * @retval None
+  */
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
   if (htim == &Tim8Handle)
   {
-    SEGGER_RTT_printf(0,"[Tim8]%d arrive\r\n",Tim8Handle.Instance->CNT);
+    SEGGER_RTT_printf(0,"[Tim8]CNT = %d\r\n",htim->Instance->CNT);
+    htim->Instance->CCR3 += 1;
   }
 }
 
@@ -241,7 +257,6 @@ void TIM7_IRQHandler(void)
   */
 void TIM8_CC_IRQHandler(void)
 {
-  SEGGER_RTT_printf(0,"\r\n[TIM8_CC_IRQ]\r\n");
   HAL_TIM_IRQHandler(&Tim8Handle);
 }
 
@@ -254,8 +269,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   if(GPIO_Pin == GPIO_PIN_15)
   {
-    SEGGER_RTT_printf(0,"\r\n[EXTI15]coder on\r\n");
-    coder_on();
+    SEGGER_RTT_printf(0,"\r\n[EXTI15]coder Z\r\n");
+    coder_Z();
   }
 }
 

@@ -3,8 +3,6 @@
 static uint32_t m_valve_state = 0;  //内部记录电磁阀通路输出状态的变量
 
 valve_param_t valve_params[12];     //记录电磁阀通路通断参数的变量
-valve_param_t valve_param;     //记录电磁阀通路通断参数的变量
-valve_t valve_test[12];     //记录电磁阀通路通断参数的变量
 
 /**@brief 用于设置电磁阀输出的函数
  *
@@ -203,10 +201,12 @@ void valve_params_load(void)
 	    //给第channel通道的第on_off_id对设定的关闭时间载入参数
 	    flash_addr += 2;
 	}
+	p_valve_param->on_offs_mask = *(uint16_t*)flash_addr;
+	//给第channel通道的开关对数载入参数
+	flash_addr += 2; //
 	p_valve_param->high_duration = *(uint16_t*)flash_addr;
 	//给第channel通道的高压输出持续时间载入参数
-	flash_addr += 2; //多留半字(16bit/2byte)作为每个通道的分隔
-	flash_addr += 2; //多留半字(16bit/2byte)作为每个通道的分隔
+	flash_addr += 2; //
     }
 }
 
@@ -238,11 +238,95 @@ void valve_params_store(void)
 	    //将第channel通道的第on_off_id对设定的关闭时间参数存入
 	    flash_addr += 2;
 	}
+	HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
+			  flash_addr,
+			  p_valve_param->on_offs_mask);
+	//将第channel通道的开关对数参数存入
+	flash_addr += 2; 
 	HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
 			  flash_addr,
 			  p_valve_param->high_duration);
 	//将第channel通道的高压输出持续时间参数存入
-	flash_addr += 4; 
+	flash_addr += 2; 
     }
     HAL_FLASH_Lock();                //写flash之后，必须再锁上flash
+}
+
+/**@brief 修改开关参数的函数
+ *
+ * @param[in] channel 指定通道
+ * @param[in] new_param 参数配置
+ *
+ * @detail new_param中打开、关闭、高压持续时间均是角度值
+ * 分整数和小数两部分表示，范围为0度～359.999度，最小精度为0.001度
+ *
+ * @note new_param 中的on_degree、off_degree和high_degree取值不应超过359
+ * on_fraction、off_fraction和high_fraction取值不应超过999
+ * @note on_off_valid 只应取0和1两种值，前者表示无效，后者表示有效
+ * @note high_valid 只有在取非0值时，high_duration的值才会被修改
+ * 而不论on_off_valid 取什么值，on_offs[on_off_index]的值总会被修改
+ */
+void valve_params_modify(uint8_t channel, valve_modify_t new_param)
+{
+    extern uint16_t coder_division;
+    valve_param_t * p_valve_param = &valve_params[channel];
+    uint8_t index = new_param.on_off_index;
+    uint16_t count;
+    
+    count = (new_param.on_degree*1000 + new_param.on_fraction)//整数小数拼合
+	    * coder_division                                  //先乘编码器分度
+	    / 360000;                                         //再除最大量程
+    p_valve_param->on_offs[index][0] = count;
+    count = (new_param.off_degree*1000 + new_param.off_fraction)//整数小数拼合
+	    * coder_division                                  //先乘编码器分度
+	    / 360000;                                         //再除最大量程
+    p_valve_param->on_offs[index][1] = count;
+    p_valve_param->on_offs_mask &= ~(0x0001<<index);          //修改相应位的掩码
+    p_valve_param->on_offs_mask |= new_param.on_off_valid << index;
+
+    if(new_param.high_valid)
+    {
+        count = (new_param.high_degree*1000 + new_param.high_fraction)//整数小数拼合
+                * coder_division                              //先乘编码器分度
+                / 360000;                                     //再除最大量程
+        p_valve_param->high_duration = count;
+    }
+}
+
+/**@brief 将指定通道的参数转换成用于显示的数据的函数
+ *
+ * @param[in] channel 指定通道
+ * @param[in] p_param 指向存放显示格式参数数据的指针
+ *
+ * @detail p_param中打开、关闭、高压持续时间均是角度值
+ * 分整数和小数两部分表示，范围为0度～359.999度，最小精度为0.001度
+ *
+ * @note p_param 中的on_degree、off_degree和high_degree取值不应超过359
+ * on_fraction、off_fraction和high_fraction取值不应超过999
+ */
+void valve_params_display(uint8_t channel, valve_display_t * p_param)
+{
+    extern uint16_t coder_division;
+    valve_param_t * p_valve_param = &valve_params[channel];
+    uint8_t index;
+    uint32_t degree;
+    
+    for(index=0;index<ON_OFF_MAX;index++)
+    {
+	    degree = p_valve_param->on_offs[index][0] * 360000 //先乘最大量程
+		     / coder_division;                         //再除编码器分度
+	    p_param->on_degree[index] = degree / 1000;         //取整数部分
+	    p_param->on_fraction[index] = degree % 1000;       //取小数部分
+
+	    degree = p_valve_param->on_offs[index][1] * 360000 //先乘最大量程
+		     / coder_division;                         //再除编码器分度
+	    p_param->off_degree[index] = degree / 1000;        //取整数部分
+	    p_param->off_fraction[index] = degree % 1000;      //取小数部分
+    }
+    p_param->on_offs_mask = p_valve_param->on_offs_mask;       //开关参数有效位
+
+    degree = p_valve_param->high_duration * 360000             //先乘最大量程
+             / coder_division;                                 //再除编码器分度
+    p_param->high_degree = degree / 1000;                      //取整数部分
+    p_param->high_fraction = degree % 1000;                    //取小数部分
 }

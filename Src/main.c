@@ -89,7 +89,7 @@ int main(void)
   Indication_Config();
 
   valve_init();
-  coder_init(2000,0);
+  coder_init(1000,1);
 
   SEGGER_RTT_printf(0,"\r\n[init]OK\r\n");//打印信息提示初始化完成
   /* -3- Toggle IO in an infinite loop */
