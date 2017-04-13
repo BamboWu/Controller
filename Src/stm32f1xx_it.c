@@ -206,7 +206,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             minute = 0;
 	    hour++;
 	}
-	SEGGER_RTT_printf(0,"%dh%dm\r\n",hour,minute);
+	SEGGER_RTT_printf(0,"\r\n%2dh%2dm\r\n",hour,minute);
     }
   }//else if (htim == &Tim7Handle)
 }
@@ -235,7 +235,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &Tim8Handle)
   {
-    SEGGER_RTT_printf(0,"[Tim8]CNT = %d\r\n",htim->Instance->CNT);
+    //SEGGER_RTT_printf(0,"[Tim8]CNT = %d\r\n",htim->Instance->CNT);
     htim->Instance->CCR3 += 1;
   }
 }
@@ -269,7 +269,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   if(GPIO_Pin == GPIO_PIN_15)
   {
-    SEGGER_RTT_printf(0,"\r\n[EXTI15]coder Z\r\n");
+    //SEGGER_RTT_printf(0,"\r\n[EXTI15]coder Z\r\n");
     coder_Z();
   }
 }

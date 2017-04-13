@@ -2,7 +2,7 @@
 
 static uint32_t m_valve_state = 0;  //内部记录电磁阀通路输出状态的变量
 
-valve_param_t valve_params[12];     //记录电磁阀通路通断参数的变量
+valve_param_t valve_params[13];     //记录电磁阀通路通断参数的变量，第0元素弃用
 
 /**@brief 用于设置电磁阀输出的函数
  *
@@ -34,7 +34,7 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
   m_valve_state &= mask32;  //清零要修改的那几个通路的记录
   m_valve_state |= state32; //要修改的那几个通路记录新的状态
   
-  SEGGER_RTT_printf(0,"\r\n[do_valve_set]m_valve_state=0X%8x\r\n",m_valve_state);
+  //SEGGER_RTT_printf(0,"\r\n[do_valve_set]m_valve_state=0X%8x\r\n",m_valve_state);
 
   switch(bank)
   {
@@ -50,7 +50,7 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
     default   : toset16 = toclr16 = 0X0000;
   }
 
-  SEGGER_RTT_printf(0,"\r\n[do_valve_set]toset16=0X%4x,toclr16=0X%4x\r\n",toset16,toclr16);
+  //SEGGER_RTT_printf(0,"\r\n[do_valve_set]toset16=0X%4x,toclr16=0X%4x\r\n",toset16,toclr16);
 
   HAL_GPIO_WritePin(GPIOA,toclr16,GPIO_PIN_RESET); //将要变低电平的脚复位
   HAL_GPIO_WritePin(GPIOA,toset16,GPIO_PIN_SET);   //将要变高电平的脚置位
@@ -215,11 +215,20 @@ void valve_params_load(void)
 void valve_params_store(void)
 {
     uint8_t channel,on_off_id;
-    uint32_t flash_addr;
+    uint32_t flash_addr,PAGEError;
+    FLASH_EraseInitTypeDef EraseInitStruct;
     valve_param_t *p_valve_param;
 
-    HAL_FLASH_Unlock();              //写flash之前，必须先解锁flash
-    FLASH_PageErase(FLASH_ADDR);     //存入新数据前，必先擦除原有数据所在的页
+    HAL_FLASH_Unlock();   //写flash之前，必须先解锁flash
+	    //SEGGER_RTT_printf(0,"[valve_params_store]flash unlock err\r\n");
+    
+    EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
+    EraseInitStruct.PageAddress = FLASH_ADDR;
+    EraseInitStruct.NbPages     = 1;
+    HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);
+    //存入新数据前，必先擦除原有数据所在的页
+	    //SEGGER_RTT_printf(0,"[valve_params_store]flash erase err\r\n");
+
     //遍历存入12个通道参数
     for(channel=1,flash_addr=FLASH_ADDR;channel<=12;channel++)
     {
@@ -260,6 +269,7 @@ void valve_params_store(void)
  * @detail new_param中打开、关闭、高压持续时间均是角度值
  * 分整数和小数两部分表示，范围为0度～359.999度，最小精度为0.001度
  *
+ * @note channel的取值范围为1～12
  * @note new_param 中的on_degree、off_degree和high_degree取值不应超过359
  * on_fraction、off_fraction和high_fraction取值不应超过999
  * @note on_off_valid 只应取0和1两种值，前者表示无效，后者表示有效
@@ -301,6 +311,7 @@ void valve_params_modify(uint8_t channel, valve_modify_t new_param)
  * @detail p_param中打开、关闭、高压持续时间均是角度值
  * 分整数和小数两部分表示，范围为0度～359.999度，最小精度为0.001度
  *
+ * @note channel的取值范围为1～12
  * @note p_param 中的on_degree、off_degree和high_degree取值不应超过359
  * on_fraction、off_fraction和high_fraction取值不应超过999
  */

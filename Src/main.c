@@ -89,46 +89,183 @@ int main(void)
   Indication_Config();
 
   valve_init();
-  coder_init(1000,1);
+  coder_init(1000,1);//1000P/R的编码器，编码器露出的轴朝自己，顺时针转计数增加
 
   SEGGER_RTT_printf(0,"\r\n[init]OK\r\n");//打印信息提示初始化完成
+  SEGGER_RTT_printf(0,"\r\nAfter \"[loop xx]\" is printed, press:\r\n");
+  SEGGER_RTT_printf(0,"\r\nh\tprint this help information.\r\n");
+  SEGGER_RTT_printf(0,    "l\tload valve params.\r\n");
+  SEGGER_RTT_printf(0,    "s\tstore valve params.\r\n");
+  SEGGER_RTT_printf(0,    "p\tprint valve params.\r\n");
+  SEGGER_RTT_printf(0,    "m\tmodefy valve params.\r\n");
+  SEGGER_RTT_printf(0,    "c\tchange channel state manually.\r\n");
   /* -3- Toggle IO in an infinite loop */
   while (1)
   {
     char key;
     uint8_t channel = 0;
+    uint8_t index = 0;
+    valve_display_t valve_display;
+    valve_modify_t  valve_modify;
+
     /* Insert delay 100 ms */
     //HAL_Delay(100);
-    SEGGER_RTT_printf(0,"\r\n[loop%d]\r\nChannel:",i++);
+    SEGGER_RTT_printf(0,"\r\n[loop%3d]\r\n",i++);
     key = SEGGER_RTT_WaitKey();  //等待输入
-    if('1'<=key&&key<='9')
-	    channel = key - '0';
-    else if('a'<=key&&key<='c')
-	    channel = key - 'a' + 10;
-    else if('A'<=key&&key<='C')
-	    channel = key - 'A' + 10;
-    else
-	    continue;  //error to choose channel
-    SEGGER_RTT_printf(0,"\r\nOn press O, Off press X:");
-    key = SEGGER_RTT_WaitKey();  //等待输入
-    if(key == 'o' || key == 'O')
-	    valve_channel_on(channel);
-    else if(key == 'x' || key == 'X')
-    {
-	    SEGGER_RTT_printf(0,"\r\nHigh press H, Low press L:");
-	    key = SEGGER_RTT_WaitKey();
-	    if(key == 'h' || key == 'H')
-		    valve_channel_off(channel,1);
-	    else if(key == 'l' || key == 'L')
-		    valve_channel_off(channel,0);
-	    else
-		    continue;  //error to choose High or Low
-    }
-    else
-	    continue;  //error to choose On or Off
 
-  }
-}
+    switch(key)
+    {
+        case 'h':
+	case 'H':
+            SEGGER_RTT_printf(0,"\r\nAfter \"[loop xx]\" is printed, press:\r\n");
+            SEGGER_RTT_printf(0,"\r\nh\tprint this help information.\r\n");
+            SEGGER_RTT_printf(0,    "l\tload valve params.\r\n");
+            SEGGER_RTT_printf(0,    "s\tstore valve params.\r\n");
+            SEGGER_RTT_printf(0,    "p\tprint valve params.\r\n");
+            SEGGER_RTT_printf(0,    "m\tmodefy valve params.\r\n");
+            SEGGER_RTT_printf(0,    "c\tchange channel state manually.\r\n");
+	    break;
+	case 'l':
+	case 'L':
+	    valve_params_load();
+	    break;
+	case 's':
+	case 'S':
+	    valve_params_store();
+	    break;
+	case 'p':
+	case 'P':
+	    SEGGER_RTT_printf(0,"\r\nChannel:");
+	    key = SEGGER_RTT_WaitKey();
+	    if('1'<=key&&key<='9')
+		    channel = key - '0';
+	    else if('a'<=key&&key<='c')
+		    channel = key - 'a' + 10;
+	    else if('A'<=key&&key<='C')
+		    channel = key - 'A' + 10;
+	    else
+		    break;
+	    valve_params_display(channel,&valve_display);
+	    SEGGER_RTT_printf(0,"\r\non_offs\r\n");
+	    for(index=0;index<ON_OFF_MAX;index++)
+	    {
+		    //SEGGER_RTT_printf(0,"\r\non_offs[%d]\r\n",index);
+		    SEGGER_RTT_printf(0,"%1d:\t%3d.%3d~%3d.%3d\t",
+				    index,
+				    valve_display.on_degree[index],
+				    valve_display.on_fraction[index],
+				    valve_display.off_degree[index],
+				    valve_display.off_fraction[index]);
+		    if((valve_display.on_offs_mask>>index)&0x0001)
+			    SEGGER_RTT_printf(0,"Y\r\n");
+		    else
+			    SEGGER_RTT_printf(0,"-\r\n");
+	    }
+	    SEGGER_RTT_printf(0,"high_duration\r\n");
+	    SEGGER_RTT_printf(0,"high:\t%3d.%3d\r\n",
+	        	    valve_display.high_degree,
+	        	    valve_display.high_fraction);
+	    break;
+	case 'm':
+	case 'M':
+	    SEGGER_RTT_printf(0,"\r\nChannel:");
+	    key = SEGGER_RTT_WaitKey();
+	    if('1'<=key&&key<='9')
+		    channel = key - '0';
+	    else if('a'<=key&&key<='c')
+		    channel = key - 'a' + 10;
+	    else if('A'<=key&&key<='C')
+		    channel = key - 'A' + 10;
+	    else
+		    break;
+	    SEGGER_RTT_printf(0,"\r\non_off_index:");
+	    valve_modify.on_off_index = SEGGER_RTT_WaitKey() - '0';
+	    SEGGER_RTT_printf(0,"\r\non_degree:");
+	    valve_modify.on_degree  = SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.on_degree *= 10;
+	    valve_modify.on_degree += SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.on_degree *= 10;
+	    valve_modify.on_degree += SEGGER_RTT_WaitKey() - '0';
+	    SEGGER_RTT_printf(0,"\r\non_fraction:");
+	    valve_modify.on_fraction  = SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.on_fraction *= 10;
+	    valve_modify.on_fraction += SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.on_fraction *= 10;
+	    valve_modify.on_fraction += SEGGER_RTT_WaitKey() - '0';
+	    SEGGER_RTT_printf(0,"\r\noff_degree:");
+	    valve_modify.off_degree  = SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.off_degree *= 10;
+	    valve_modify.off_degree += SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.off_degree *= 10;
+	    valve_modify.off_degree += SEGGER_RTT_WaitKey() - '0';
+	    SEGGER_RTT_printf(0,"\r\noff_fraction:");
+	    valve_modify.off_fraction  = SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.off_fraction *= 10;
+	    valve_modify.off_fraction += SEGGER_RTT_WaitKey() - '0';
+	    valve_modify.off_fraction *= 10;
+	    valve_modify.off_fraction += SEGGER_RTT_WaitKey() - '0';
+	    SEGGER_RTT_printf(0,"\r\non_off_valid:");
+	    key = SEGGER_RTT_WaitKey();
+	    if(key=='Y'||key=='y'||key=='1')
+		    valve_modify.on_off_valid = 1;
+	    else
+		    valve_modify.on_off_valid = 0;
+	    SEGGER_RTT_printf(0,"\r\nhigh_valid:");
+	    key = SEGGER_RTT_WaitKey();
+	    if(key=='Y'||key=='y'||key=='1')
+	    {
+		    valve_modify.high_valid = 1;
+	            SEGGER_RTT_printf(0,"\r\nhigh_degree:");
+	            valve_modify.high_degree  = SEGGER_RTT_WaitKey() - '0';
+	            valve_modify.high_degree *= 10;
+	            valve_modify.high_degree += SEGGER_RTT_WaitKey() - '0';
+	            valve_modify.high_degree *= 10;
+	            valve_modify.high_degree += SEGGER_RTT_WaitKey() - '0';
+	            SEGGER_RTT_printf(0,"\r\nhigh_fraction:");
+	            valve_modify.high_fraction  = SEGGER_RTT_WaitKey() - '0';
+	            valve_modify.high_fraction *= 10;
+	            valve_modify.high_fraction += SEGGER_RTT_WaitKey() - '0';
+	            valve_modify.high_fraction *= 10;
+	            valve_modify.high_fraction += SEGGER_RTT_WaitKey() - '0';
+	    }
+	    else
+		    valve_modify.high_valid = 0;
+	    valve_params_modify(channel,valve_modify);
+	    break;
+	case 'c':
+	case 'C':
+	    SEGGER_RTT_printf(0,"\r\nChannel:");
+	    key = SEGGER_RTT_WaitKey();
+	    if('1'<=key&&key<='9')
+		    channel = key - '0';
+	    else if('a'<=key&&key<='c')
+		    channel = key - 'a' + 10;
+	    else if('A'<=key&&key<='C')
+		    channel = key - 'A' + 10;
+	    else
+		    break;
+            SEGGER_RTT_printf(0,"\r\nOn press O, Off press X:");
+            key = SEGGER_RTT_WaitKey();  //等待输入
+            if(key == 'o' || key == 'O')
+                    valve_channel_on(channel);
+            else if(key == 'x' || key == 'X')
+            {
+                    SEGGER_RTT_printf(0,"\r\nHigh press H, Low press L:");
+                    key = SEGGER_RTT_WaitKey();
+                    if(key == 'h' || key == 'H')
+                	    valve_channel_off(channel,1);
+                    else if(key == 'l' || key == 'L')
+                	    valve_channel_off(channel,0);
+                    else
+                	    break;  //error to choose High or Low
+            }
+            else
+                    break;  //error to choose On or Off
+	    break;  //finish
+	default: break;
+    }  //switch(key)
+  }  //while(1)
+}  //main()
 
 /**
   * @brief  System Clock Configuration
@@ -156,7 +293,7 @@ void SystemClock_Config(void)
   oscinitstruct.OscillatorType  = RCC_OSCILLATORTYPE_HSE;
   oscinitstruct.HSEState        = RCC_HSE_ON;
   oscinitstruct.LSEState        = RCC_LSE_OFF;
-  oscinitstruct.HSIState        = RCC_HSI_OFF;
+  oscinitstruct.HSIState        = RCC_HSI_ON;//要操作FLASH，必须开启内部时钟
   oscinitstruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   oscinitstruct.HSEPredivValue  = RCC_HSE_PREDIV_DIV1;
   oscinitstruct.PLL.PLLState    = RCC_PLL_ON;
@@ -176,6 +313,7 @@ void SystemClock_Config(void)
   clkinitstruct.APB2CLKDivider = RCC_HCLK_DIV1;
   clkinitstruct.APB1CLKDivider = RCC_HCLK_DIV2;  
   if (HAL_RCC_ClockConfig(&clkinitstruct, FLASH_LATENCY_2)!= HAL_OK)
+  //flash操作延时两个cycle，以便适应频率高达72MHz的CPU时钟
   {
     /* Initialization Error */
     while(1); 
