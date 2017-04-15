@@ -84,6 +84,8 @@ C_SOURCE_FILES += $(abspath ../../RTT/RTT/SEGGER_RTT_printf.c)      #RTT调试
 C_SOURCE_FILES += $(abspath ../Src/Valve/valve.c)  #电磁阀控制函数 
 #sources for coder control #与编码器交互的函数源文件
 C_SOURCE_FILES += $(abspath ../Src/Coder/coder.c)  #电磁阀控制函数 
+#sources for command interface #提供命令行交互界面的函数源文件
+C_SOURCE_FILES += $(abspath ../Src/HMI/cmd.c)  #命令行交互界面函数 
 
 #includes common to all targets
 INC_PATHS  = -I$(abspath $(DRIVER_PATH)/CMSIS/Include) #包含CMSIS提供的头文件
