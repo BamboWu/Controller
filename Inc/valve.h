@@ -12,6 +12,8 @@
 //最多可设置的开关对数，受on_offs_mask制约，应小于16
 #define FLASH_ADDR ((uint32_t)0x0801FC00)
 //flash地址从0x08000000开始，使用第128个1KB的page存储电磁阀的参数
+#define DATA_MARK  ((uint32_t)0x5050A0A0)
+//用来标记flash中的数据存在，不可取为0xFFFFFFFF
 
 typedef uint16_t on_off[2]; //电磁阀开启关闭时刻count的一对设定值的结构
 typedef struct valve_param_s

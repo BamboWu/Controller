@@ -44,6 +44,7 @@
 #include "SEGGER_RTT.h"
 #include "valve.h"
 #include "coder.h"
+#include "cmd.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

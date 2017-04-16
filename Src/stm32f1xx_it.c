@@ -236,7 +236,38 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim == &Tim8Handle)
   {
     //SEGGER_RTT_printf(0,"[Tim8]CNT = %d\r\n",htim->Instance->CNT);
-    htim->Instance->CCR3 += 1;
+    //htim->Instance->CCR3 += 1;
+    extern coder_evt_t * pcoder_evt_now;
+    if(pcoder_evt_now != NULL)
+    {
+	switch(pcoder_evt_now->evt_type)
+	{
+	    case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
+			       break;
+	    case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
+				break;
+	    case channel_off_L:valve_channel_off(pcoder_evt_now->evt_channel,0);
+				break;
+	    default:            break;
+	}
+	while(pcoder_evt_now->coder_count == pcoder_evt_now->next->coder_count)
+	{
+	    pcoder_evt_now = pcoder_evt_now->next;
+	    switch(pcoder_evt_now->evt_type)
+	    {
+		case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
+				   break;
+		case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
+				   break;
+		case channel_off_L:valve_channel_off(pcoder_evt_now->evt_channel,0);
+				   break;
+		default:           break;
+	    }
+	}
+	//当前count点的事件已经全部执行完
+	pcoder_evt_now = pcoder_evt_now->next;
+	Tim8Handle.Instance->CCR3 = pcoder_evt_now->coder_count;
+    }//if(pcoder_evt_now != NULL)
   }
 }
 

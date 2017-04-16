@@ -1,8 +1,8 @@
 #include "valve.h"
 
-static uint32_t m_valve_state = 0;  //内部记录电磁阀通路输出状态的变量
+static uint32_t m_valve_state = 0;   //内部记录电磁阀通路输出状态的变量
 
-valve_param_t valve_params[13];     //记录电磁阀通路通断参数的变量，第0元素弃用
+valve_param_t valve_params[13] = {0};//记录电磁阀通路通断参数的变量，第0元素弃用
 
 /**@brief 用于设置电磁阀输出的函数
  *
@@ -187,8 +187,12 @@ void valve_params_load(void)
     uint32_t flash_addr;
     valve_param_t *p_valve_param;
 
+    if(*(uint32_t*)FLASH_ADDR != DATA_MARK)//数据有损
+    {
+	return;//退出
+    }
     //遍历填入12个通道参数
-    for(channel=1,flash_addr=FLASH_ADDR;channel<=12;channel++)
+    for(channel=1,flash_addr=FLASH_ADDR+4;channel<=12;channel++)
     {
 	p_valve_param = &valve_params[channel];
 	//为每个通道遍历填入(ON_OFF_MAX)对输出关闭设定
@@ -229,8 +233,12 @@ void valve_params_store(void)
     //存入新数据前，必先擦除原有数据所在的页
 	    //SEGGER_RTT_printf(0,"[valve_params_store]flash erase err\r\n");
 
+    HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+		      FLASH_ADDR,
+		      DATA_MARK);//写一个标识，记录flash中数据确实存在
+
     //遍历存入12个通道参数
-    for(channel=1,flash_addr=FLASH_ADDR;channel<=12;channel++)
+    for(channel=1,flash_addr=FLASH_ADDR+4;channel<=12;channel++)
     {
 	p_valve_param = &valve_params[channel];
 	//为每个通道遍历存入(ON_OFF_MAX)对 输出关闭时间

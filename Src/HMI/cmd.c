@@ -305,6 +305,7 @@ void cmd_d(void)
 			  p_coder_evt->evt_type);
 	p_coder_evt = p_coder_evt -> next;
     }
+	SEGGER_RTT_printf(0,"\r\n");
 }
 
 /**@brief  字符交互界面
@@ -353,6 +354,10 @@ void cmd_main(void)
 	case 'r':
 	case 'R':
 	    cmd_r();
+	    break;
+	case 'd':
+	case 'D':
+	    cmd_d();
 	    break;
 
 	default: break;
