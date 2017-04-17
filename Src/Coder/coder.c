@@ -101,7 +101,7 @@ void coder_evt_insert(coder_evt_t evt)
   {
       if(pcoder_evt_free == NULL)//达到事件上限，无法插入新事件
       {
-	 SEGGER_RTT_printf(0,"\r\n[coder_evt_insert]pcoder_evt_free==NULL\r\n");
+	 //SEGGER_RTT_printf(0,"\r\n[coder_evt_insert]pcoder_evt_free==NULL\r\n");
 	 return;
       }
       else
@@ -134,8 +134,8 @@ void coder_evt_insert(coder_evt_t evt)
 	  p_coder_evt -> next = p_coder_evt_tmp;
       }//else(evt.coder_count>=(pcoder_evt_first->coder_count))
   }//else(pcoder_evt_first!=NULL)
-  SEGGER_RTT_printf(0,"\r\n[evt_insert]p_first=%x\r\n",pcoder_evt_first);
-  SEGGER_RTT_printf(0,"\r\n[evt_insert]p_coder=%x\r\n",p_coder_evt);
+  //SEGGER_RTT_printf(0,"\r\n[evt_insert]p_first=%x\r\n",pcoder_evt_first);
+  //SEGGER_RTT_printf(0,"\r\n[evt_insert]p_coder=%x\r\n",p_coder_evt);
 }
 
 /**@breif 用于移除一个指定内容的coder event的函数
@@ -147,7 +147,7 @@ void coder_evt_remove(coder_evt_t evt)
 
   if(p_coder_evt == NULL)//一个事件都还没有
   {
-      SEGGER_RTT_printf(0,"\r\n[coder_evt_remove]pcoder_evt_first==NULL\r\n");
+      //SEGGER_RTT_printf(0,"\r\n[coder_evt_remove]pcoder_evt_first==NULL\r\n");
       return;
   }
   //至少存在一个事件
@@ -175,12 +175,12 @@ void coder_evt_remove(coder_evt_t evt)
 
      if(p_coder_evt_tmp==NULL)//第一个事件不是，后面又没有第二个事件了
      {
-	 SEGGER_RTT_printf(0,"[coder_evt_remove]p_coder_evt_tmp==NULL\r\n");
+	 //SEGGER_RTT_printf(0,"[coder_evt_remove]p_coder_evt_tmp==NULL\r\n");
 	 return;
      }
      else if(p_coder_evt==p_coder_evt_tmp)//说明不是找到指定事件而break出来的
      {
-	 SEGGER_RTT_printf(0,"[coder_evt_remove]p_coder_evt==p_coder_evt_tmp\r\n");
+	 //SEGGER_RTT_printf(0,"[coder_evt_remove]p_coder_evt==p_coder_evt_tmp\r\n");
 	 return;
      }
      else

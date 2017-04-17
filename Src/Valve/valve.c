@@ -15,6 +15,7 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
   uint32_t mask32 = mask;
   uint32_t state32 = state;
   uint16_t toset16,toclr16;
+  uint8_t  i;
 
   switch(bank)
   {
@@ -65,7 +66,8 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
 		break;
     default   : HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2,GPIO_PIN_RESET);
   }
-		HAL_Delay(1);//延时1ms
+		//HAL_Delay(1);//延时1ms
+  for(i=0;i<255;i++);//软件延时，这样中断中也调用到该函数不会死机
   HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2,GPIO_PIN_RESET); //确保CP0～CP2的信号平时保持低电平。
 }
 
