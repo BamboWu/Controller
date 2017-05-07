@@ -262,7 +262,7 @@ void valve_params_store(void)
 			  p_valve_param->on_offs_mask);
 	//将第channel通道的开关对数参数存入
 	flash_addr += 2; 
-	HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+	HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
 			  flash_addr,
 			  p_valve_param->high_duration);
 	//将第channel通道的高压输出持续时间参数存入
