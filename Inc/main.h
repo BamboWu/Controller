@@ -45,6 +45,7 @@
 #include "valve.h"
 #include "coder.h"
 #include "cmd.h"
+#include "hmi.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

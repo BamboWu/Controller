@@ -55,6 +55,14 @@
 /* Private variables ---------------------------------------------------------*/
 extern TIM_HandleTypeDef Tim7Handle;
 extern TIM_HandleTypeDef Tim8Handle;
+#ifdef USE_UART1_232
+extern UART_HandleTypeDef UART1Handle;
+extern unsigned char UART1_STA;
+extern unsigned char RxBuffer1[RXBUFFER_SIZE];
+#endif
+extern UART_HandleTypeDef UART3Handle;
+extern unsigned char UART3_STA;
+extern unsigned char RxBuffer[RXBUFFER_SIZE];
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -326,6 +334,91 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void EXTI15_10_IRQHandler(void)
 {
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_15);
+}
+
+/**
+  * @brief  Tx Transfer completed callback
+  * @param  UartHandle: UART handle. 
+  * @note   This example shows a simple way to report end of IT Tx transfer, and 
+  *         you can add your own implementation. 
+  * @retval None
+  */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+#ifdef USE_UART1_232
+  if(UartHandle == &UART1Handle)
+  {
+	  /* Set transmission flag: transfer complete */
+	  UART1_STA |= TX_CPLT;
+  }
+#endif
+  if(UartHandle == &UART3Handle)
+  {
+	  /* Set transmission flag: transfer complete */
+	  UART3_STA |= TX_CPLT;
+  }
+  
+}
+
+/**
+  * @brief  Rx Transfer completed callback
+  * @param  UartHandle: UART handle
+  * @note   This example shows a simple way to report end of DMA Rx transfer, and 
+  *         you can add your own implementation.
+  * @retval None
+  */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+  //SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]%x\r\n",UartHandle->Instance->DR);
+  
+#ifdef USE_UART1_232
+  if(UartHandle == &UART1Handle)
+  {
+	  /* Set transmission flag: receive complete */
+	  UART1_STA |= RX_CPLT;
+  }
+#endif
+  if(UartHandle == &UART3Handle)
+  {
+	  /* Set transmission flag: receive complete */
+	  UART3_STA |= RX_CPLT;
+  }
+  
+}
+
+/**
+  * @brief  UART error callbacks
+  * @param  UartHandle: UART handle
+  * @note   This example shows a simple way to report transfer error, and you can
+  *         add your own implementation.
+  * @retval None
+  */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
+{
+  SEGGER_RTT_printf(0,"\r\nUART_Error\r\n");
+    //Error_Handler();
+}
+/**
+  * @brief  This function handles UART interrupt request.  
+  * @param  None
+  * @retval None
+  */
+void USART1_IRQHandler(void)
+{
+  //SEGGER_RTT_printf(0,"\r\n[USART1_IRQ]\r\n");
+#ifdef USE_UART1_232
+  HAL_UART_IRQHandler(&UART1Handle);
+#endif
+}
+/**
+  * @brief  This function handles UART interrupt request.  
+  * @param  None
+  * @retval None
+  */
+void USART3_IRQHandler(void)
+{
+  SEGGER_RTT_printf(0,"\r\n[USART3_IRQ]\r\n");
+  HAL_UART_IRQHandler(&UART3Handle);
 }
 /**
   * @}

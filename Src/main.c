@@ -90,15 +90,18 @@ int main(void)
 
   valve_init();
   coder_init(1000,1);//1000P/R的编码器，编码器露出的轴朝自己，顺时针转计数增加
+  hmi_init();
 
-  cmd_h();//打印一遍命令行交互界面的帮助信息
+  //cmd_h();//打印一遍命令行交互界面的帮助信息
   /* -3- Toggle IO in an infinite loop */
   while (1)
   {
     /* Insert delay 100 ms */
     //HAL_Delay(100);
     SEGGER_RTT_printf(0,"\r\n[loop%3d]\r\n",i++);
-    cmd_main();
+    //cmd_main();
+    //hmi_main();
+    hmi_test();
   }  //while(1)
 }  //main()
 
