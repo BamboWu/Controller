@@ -229,62 +229,83 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef *htim)
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 {  
   GPIO_InitTypeDef  GPIO_InitStruct;
+  extern UART_HandleTypeDef UART3Handle;
+#ifdef USE_UART1_232
+  extern UART_HandleTypeDef UART1Handle;
   
-  /*##-1- Enable peripherals and GPIO Clocks #################################*/
-  /* Enable GPIO TX/RX clock */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+  if(&UART1Handle == huart)
+  {
+      /*##-1- Enable peripherals and GPIO Clocks ############################*/
+      /* Enable GPIO TX/RX clock */
+      __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /* Enable AFIO clock */
-  __HAL_RCC_AFIO_CLK_ENABLE();
+      /* Enable AFIO clock */
+      __HAL_RCC_AFIO_CLK_ENABLE();
 
-  /* Enable USARTx clock */
-  __HAL_RCC_USART1_CLK_ENABLE(); 
-  __HAL_RCC_USART3_CLK_ENABLE(); 
-  
-  /*##-2- Configure peripheral GPIO ##########################################*/  
-  /* UART TX GPIO pin configuration  */
-  GPIO_InitStruct.Pin       = GPIO_PIN_9;
-  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull      = GPIO_PULLUP;
-  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+      /* Enable USARTx clock */
+      __HAL_RCC_USART1_CLK_ENABLE(); 
+      
+      /*##-2- Configure peripheral GPIO #####################################*/  
+      /* UART TX GPIO pin configuration  */
+      GPIO_InitStruct.Pin       = GPIO_PIN_9;
+      GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+      GPIO_InitStruct.Pull      = GPIO_PULLUP;
+      GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
 
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);//把PA9设为复用推挽
+      HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);//把PA9设为复用推挽
 
-  GPIO_InitStruct.Pin       = GPIO_PIN_10;
-  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull      = GPIO_PULLUP;
-  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
+      /* UART RX GPIO pin configuration  */
+      GPIO_InitStruct.Pin = GPIO_PIN_10;
+      GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
 
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);//把PB10设为复用推挽
+      HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);//把PA10设为上拉输入
 
-  /* UART RX GPIO pin configuration  */
-  GPIO_InitStruct.Pin = GPIO_PIN_10;
-  GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
+      /*##-3- Configure the NVIC for UART ###################################*/
+      /* NVIC for USART */
+      HAL_NVIC_SetPriority(USART1_IRQn, 0, 2);
+      HAL_NVIC_EnableIRQ(USART1_IRQn);
+  }
+#endif //USE_UART1_232
+  if(&UART3Handle == huart)
+  {
+      /*##-1- Enable peripherals and GPIO Clocks ############################*/
+      /* Enable GPIO TX/RX clock */
+      __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);//把PA10设为上拉输入
-    
-  GPIO_InitStruct.Pin = GPIO_PIN_11;
-  GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
+      /* Enable AFIO clock */
+      __HAL_RCC_AFIO_CLK_ENABLE();
 
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);//把PB11设为上拉输入
+      /* Enable USARTx clock */
+      __HAL_RCC_USART3_CLK_ENABLE(); 
+      
+      /*##-2- Configure peripheral GPIO #####################################*/  
+      GPIO_InitStruct.Pin       = GPIO_PIN_10;
+      GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
+      GPIO_InitStruct.Pull      = GPIO_PULLUP;
+      GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
 
-  /* 485 RDDE GPIO pin configuration  */
-  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;  //推挽输出
-  GPIO_InitStruct.Pull  = GPIO_PULLUP;          //上拉
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
-  GPIO_InitStruct.Pin   = GPIO_PIN_12;          //引脚号
+      HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);//把PB10设为复用推挽
+        
+      GPIO_InitStruct.Pin = GPIO_PIN_11;
+      GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
 
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct); //初始化PB12引脚
+      HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);//把PB11设为上拉输入
 
-  HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);  //PB12输出低电平，使能读
+      /* 485 RDDE GPIO pin configuration  */
+      GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;  //推挽输出
+      GPIO_InitStruct.Pull  = GPIO_PULLUP;          //上拉
+      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; //高速IO 50MHz
+      GPIO_InitStruct.Pin   = GPIO_PIN_12;          //引脚号
 
-  /*##-3- Configure the NVIC for UART ########################################*/
-  /* NVIC for USART */
-  HAL_NVIC_SetPriority(USART1_IRQn, 0, 1);
-  HAL_NVIC_EnableIRQ(USART1_IRQn);
-  HAL_NVIC_SetPriority(USART3_IRQn, 0, 1);
-  HAL_NVIC_EnableIRQ(USART3_IRQn);
+      HAL_GPIO_Init(GPIOB, &GPIO_InitStruct); //初始化PB12引脚
+
+      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);  //PB12输出低电平，使能读
+
+      /*##-3- Configure the NVIC for UART ###################################*/
+      /* NVIC for USART */
+      HAL_NVIC_SetPriority(USART3_IRQn, 0, 1);
+      HAL_NVIC_EnableIRQ(USART3_IRQn);
+  }
 }
 
 /**
@@ -297,20 +318,43 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
   */
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
 {
-  /*##-1- Reset peripherals ##################################################*/
-  __HAL_RCC_USART3_FORCE_RESET();
-  __HAL_RCC_USART3_RELEASE_RESET();
+  extern UART_HandleTypeDef UART3Handle;
+#ifdef USE_UART1_232
+  extern UART_HandleTypeDef UART1Handle;
 
-  /*##-2- Disable peripherals and GPIO Clocks #################################*/
-  /* Configure UART Tx as alternate function  */
-  HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10);
-  /* Configure UART Rx as alternate function  */
-  HAL_GPIO_DeInit(GPIOB, GPIO_PIN_11);
-  /* Configure RE/DE as alternate function  */
-  HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12);
-  
-  /*##-3- Disable the NVIC for UART ##########################################*/
-  HAL_NVIC_DisableIRQ(USART3_IRQn);
+  if(&UART1Handle == huart)
+  {
+      /*##-1- Reset peripherals #############################################*/
+      __HAL_RCC_USART1_FORCE_RESET();
+      __HAL_RCC_USART1_RELEASE_RESET();
+
+      /*##-2- Disable peripherals and GPIO Clocks ###########################*/
+      /* Configure UART Tx as alternate function  */
+      HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9);
+      /* Configure UART Rx as alternate function  */
+      HAL_GPIO_DeInit(GPIOA, GPIO_PIN_10);
+      
+      /*##-3- Disable the NVIC for UART #####################################*/
+      HAL_NVIC_DisableIRQ(USART1_IRQn);
+  }
+#endif //USE_UART1_232
+  if(&UART3Handle == huart)
+  {
+      /*##-1- Reset peripherals #############################################*/
+      __HAL_RCC_USART3_FORCE_RESET();
+      __HAL_RCC_USART3_RELEASE_RESET();
+
+      /*##-2- Disable peripherals and GPIO Clocks ###########################*/
+      /* Configure UART Tx as alternate function  */
+      HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10);
+      /* Configure UART Rx as alternate function  */
+      HAL_GPIO_DeInit(GPIOB, GPIO_PIN_11);
+      /* Configure RE/DE as alternate function  */
+      HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12);
+      
+      /*##-3- Disable the NVIC for UART #####################################*/
+      HAL_NVIC_DisableIRQ(USART3_IRQn);
+  }
 }
 /**
   * @}

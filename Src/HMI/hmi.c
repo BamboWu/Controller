@@ -42,7 +42,7 @@ void hmi_init(void)
 
     UART3Handle.Instance        = USART3;
 
-    UART3Handle.Init.BaudRate   = 115200;
+    UART3Handle.Init.BaudRate   = 9600;
     UART3Handle.Init.WordLength = UART_WORDLENGTH_8B;
     UART3Handle.Init.Parity     = UART_PARITY_NONE;
     UART3Handle.Init.StopBits   = UART_STOPBITS_1;
@@ -66,30 +66,20 @@ void hmi_init(void)
  */
 void hmi_main(void)
 {
-#ifdef  USE_UART1_232
-    SEGGER_RTT_printf(0,"\r\n[hmi_main]UART1_STA=%x\r\n",UART1_STA);
-    if(UART1_STA & RX_CPLT)
-    {
-	SEGGER_RTT_printf(0,"\r\n%c%c%c%c%c %x\r\n",
-			RxBuffer1[0],
-			RxBuffer1[1],
-			RxBuffer1[2],
-			RxBuffer1[3],
-			RxBuffer1[4],
-			UART1Handle.Instance->DR);
-	UART1_STA &= ~RX_CPLT;
-    	HAL_UART_Receive_IT(&UART1Handle, (uint8_t *)RxBuffer1, 128);
-    }
-#endif
-
-    SEGGER_RTT_printf(0,"\r\n[hmi_main]UART3_STA=%x\r\n",UART3_STA);
+    //SEGGER_RTT_printf(0,"\r\n[hmi_main]UART3_STA=%x\r\n",UART3_STA);
     //SEGGER_RTT_printf(0,"\r\nRxBuffer=%x\r\n",RxBuffer[0]);
+    //HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);  
     if(UART3_STA & RX_CPLT)
     {
-	SEGGER_RTT_printf(0,"\r\n%c %x\r\n",RxBuffer[0],UART3Handle.Instance->DR);
+	SEGGER_RTT_printf(0,"%2x",RxBuffer[0]);
 	UART3_STA &= ~RX_CPLT;
     	HAL_UART_Receive_IT(&UART3Handle, (uint8_t *)RxBuffer, 1);
     }
+    //else
+    //{
+    //    SEGGER_RTT_printf(0,"\r\n[hmi_main]%x\r\n",UART3Handle.State);
+    //    HAL_Delay(100);
+    //}
 }
 
 #ifdef  USE_UART1_232
@@ -133,6 +123,46 @@ void hmi_test(void)
 		TxBuffer1[char_num] = key_val;
 		//SEGGER_RTT_printf(0,"%x",key_val);
 		++char_num;
+	}
+    }
+}
+#endif
+
+#ifdef  USE_UART3_485
+/**@brief  485调试程序
+ *
+ */
+void hmi_test_485(void)
+{
+    unsigned char char_num=0;
+
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);  //PB12输出高电平，使能写
+    TxBuffer[0] = ':';
+    HAL_UART_Transmit_IT(&UART3Handle, (uint8_t *)TxBuffer, 1);
+    while(1)
+    {
+	if(UART3_STA & TX_CPLT)
+	{
+		UART3_STA &= ~TX_CPLT;
+		SEGGER_RTT_printf(0,"\r\n[hmi_test]Tx cplt\r\n");
+		if(9 <= char_num)
+			char_num = 0;
+		else
+			char_num++;
+		TxBuffer[0] = 'H';
+		TxBuffer[1] = 'e';
+		TxBuffer[2] = 'l';
+		TxBuffer[3] = 'l';
+		TxBuffer[4] = 'o';
+		TxBuffer[5] = '0'+char_num;
+		TxBuffer[6] = '\r';
+		TxBuffer[7] = '\n';
+		HAL_UART_Transmit_IT(&UART3Handle, (uint8_t *)TxBuffer, 8);
+	}
+	else
+	{
+		SEGGER_RTT_printf(0,"\r\n[hmi_test]wait Tx cplt\r\n");
+		HAL_Delay(1000);
 	}
     }
 }

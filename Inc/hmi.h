@@ -4,7 +4,8 @@
 #include "stm32f1xx_hal.h"
 #include "SEGGER_RTT.h"
 
-#define  USE_UART1_232
+//#define  USE_UART1_232
+//#define  USE_UART3_485
 
 //给UARTx_STA用的标注状态的宏
 #define  RX_CPLT   0x20
@@ -19,5 +20,9 @@ void hmi_main(void);
 #ifdef  USE_UART1_232
 void hmi_test(void);
 #endif //USE_UART1_232
+
+#ifdef  USE_UART3_485
+void hmi_test_485(void);
+#endif //USE_UART3_485
 
 #endif /* __HMI_H */

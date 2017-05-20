@@ -66,7 +66,7 @@ void Indication_Config(void);             //程序运行指示灯配置函数
   */
 int main(void)
 {
-  uint8_t i=0;
+  //uint8_t i=0;
   /* This sample code shows how to use GPIO HAL API to toggle LED2 IO
     in an infinite loop. */
 
@@ -98,10 +98,11 @@ int main(void)
   {
     /* Insert delay 100 ms */
     //HAL_Delay(100);
-    SEGGER_RTT_printf(0,"\r\n[loop%3d]\r\n",i++);
+    //SEGGER_RTT_printf(0,"\r\n[loop%3d]\r\n",i++);
     //cmd_main();
-    //hmi_main();
-    hmi_test();
+    hmi_main();
+    //hmi_test();
+    //hmi_test_485();
   }  //while(1)
 }  //main()
 

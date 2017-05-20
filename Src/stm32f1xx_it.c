@@ -369,7 +369,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
   */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-  //SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]%x\r\n",UartHandle->Instance->DR);
+  //SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]\r\n");
   
 #ifdef USE_UART1_232
   if(UartHandle == &UART1Handle)
@@ -417,7 +417,7 @@ void USART1_IRQHandler(void)
   */
 void USART3_IRQHandler(void)
 {
-  SEGGER_RTT_printf(0,"\r\n[USART3_IRQ]\r\n");
+  //SEGGER_RTT_printf(0,"\r\n[USART3_IRQ]\r\n");
   HAL_UART_IRQHandler(&UART3Handle);
 }
 /**
