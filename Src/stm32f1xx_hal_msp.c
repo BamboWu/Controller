@@ -108,7 +108,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 {
   GPIO_InitTypeDef  GPIO_InitStruct = {0}; //GPIO初始化用到的结构体
   
-  if(htim->Instance == TIM7)
+  if(TIM7 == htim->Instance)
   { 
       /*##-1- Enable peripheral clock #############################*/
       /* TIM7 Peripheral clock enable */
@@ -135,26 +135,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 
       HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);  //PA15输出低电平，点亮L6
   }
-  //else if(htim->Instance == TIM8)
-  //{
-  //    /*##-1- Enable peripheral clock #############################*/
-  //    /* TIM8 Peripheral clock enable */
-  //    __HAL_RCC_GPIOB_CLK_ENABLE();  //打开GPIOB口的时钟
-  //    __HAL_RCC_AFIO_CLK_ENABLE();   //打开AFIO引脚功能复用的时钟
-  //    __HAL_RCC_TIM8_CLK_ENABLE();   //打开TIM8的时钟
-  //    __HAL_RCC_GPIOC_CLK_ENABLE();  //打开GPIOC口的时钟
-  //
-  //    /*##-2- Configure the NVIC for TIM8 ####################################*/
-  //    /* Set the TIM8 priority */
-  //    //HAL_NVIC_SetPriority(TIM8_IRQn, 0, 3); //TIM8是编码器模式工作的，无中断
-  //    /* Set the EXTI15 priority */
-  //    HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 3); 
-
-  //    /* Enable the TIMx global Interrupt */
-  //    //HAL_NVIC_EnableIRQ(TIM8_IRQn); //TIM8是编码器模式工作的，无中断
-  //    /* Enable the EXTI15 Interrupt */
-  //    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn); 
-  //}
 
 }
 /**
@@ -166,7 +146,7 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef *htim)
 {
   GPIO_InitTypeDef  GPIO_InitStruct = {0}; //GPIO初始化用到的结构体
   
-  if(htim->Instance == TIM8)
+  if(TIM8 == htim->Instance)
   {
       /*##-1- Enable peripheral clock #############################*/
       /* TIM8 Peripheral clock enable */
@@ -200,7 +180,7 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef *htim)
   */
 void HAL_TIM_OC_MspInit(TIM_HandleTypeDef *htim)
 {
-  if(htim->Instance == TIM8)
+  if(TIM8 == htim->Instance)
   {
       /*##-1- Enable peripheral clock #############################*/
       /* TIM8 Peripheral clock enable */
@@ -216,7 +196,27 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef *htim)
 
   }
 }
+/**
+  * @brief  Initializes the TIM One Pulse MSP.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_OnePulse_MspInit(TIM_HandleTypeDef *htim)
+{
+  if(TIM6 == htim->Instance)
+  {
+      /*##-1- Enable peripheral clock #############################*/
+      /* TIM6 Peripheral clock enable */
+      __HAL_RCC_TIM6_CLK_ENABLE();   //打开TIM6的时钟
+  
+      /*##-2- Configure the NVIC for TIM6 ####################################*/
+      /* Set the TIM6 priority */
+      HAL_NVIC_SetPriority(TIM6_IRQn, 0, 1); 
 
+      /* Enable the TIM6 Global Interrupt */
+      HAL_NVIC_EnableIRQ(TIM6_IRQn); 
+  }
+}
 /**
   * @brief UART MSP Initialization 
   *        This function configures the hardware resources used in this example: 
@@ -229,11 +229,8 @@ void HAL_TIM_OC_MspInit(TIM_HandleTypeDef *htim)
 void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 {  
   GPIO_InitTypeDef  GPIO_InitStruct;
-  extern UART_HandleTypeDef UART3Handle;
-#ifdef USE_UART1_232
-  extern UART_HandleTypeDef UART1Handle;
-  
-  if(&UART1Handle == huart)
+
+  if(USART1 == huart->Instance)
   {
       /*##-1- Enable peripherals and GPIO Clocks ############################*/
       /* Enable GPIO TX/RX clock */
@@ -255,18 +252,17 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
       HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);//把PA9设为复用推挽
 
       /* UART RX GPIO pin configuration  */
-      GPIO_InitStruct.Pin = GPIO_PIN_10;
+      GPIO_InitStruct.Pin       = GPIO_PIN_10;
       GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
 
       HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);//把PA10设为上拉输入
 
       /*##-3- Configure the NVIC for UART ###################################*/
       /* NVIC for USART */
-      HAL_NVIC_SetPriority(USART1_IRQn, 0, 2);
+      HAL_NVIC_SetPriority(USART1_IRQn, 0, 3);
       HAL_NVIC_EnableIRQ(USART1_IRQn);
   }
-#endif //USE_UART1_232
-  if(&UART3Handle == huart)
+  if(USART3 == huart->Instance)
   {
       /*##-1- Enable peripherals and GPIO Clocks ############################*/
       /* Enable GPIO TX/RX clock */
@@ -286,7 +282,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
       HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);//把PB10设为复用推挽
         
-      GPIO_InitStruct.Pin = GPIO_PIN_11;
+      GPIO_InitStruct.Pin       = GPIO_PIN_11;
       GPIO_InitStruct.Mode      = GPIO_MODE_INPUT;
 
       HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);//把PB11设为上拉输入
@@ -303,7 +299,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
       /*##-3- Configure the NVIC for UART ###################################*/
       /* NVIC for USART */
-      HAL_NVIC_SetPriority(USART3_IRQn, 0, 1);
+      HAL_NVIC_SetPriority(USART3_IRQn, 0, 3);
       HAL_NVIC_EnableIRQ(USART3_IRQn);
   }
 }
@@ -318,11 +314,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
   */
 void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
 {
-  extern UART_HandleTypeDef UART3Handle;
-#ifdef USE_UART1_232
-  extern UART_HandleTypeDef UART1Handle;
-
-  if(&UART1Handle == huart)
+  if(USART1 == huart->Instance)
   {
       /*##-1- Reset peripherals #############################################*/
       __HAL_RCC_USART1_FORCE_RESET();
@@ -337,8 +329,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
       /*##-3- Disable the NVIC for UART #####################################*/
       HAL_NVIC_DisableIRQ(USART1_IRQn);
   }
-#endif //USE_UART1_232
-  if(&UART3Handle == huart)
+  if(USART3 == huart->Instance)
   {
       /*##-1- Reset peripherals #############################################*/
       __HAL_RCC_USART3_FORCE_RESET();

@@ -55,15 +55,8 @@
 /* Private variables ---------------------------------------------------------*/
 extern TIM_HandleTypeDef Tim7Handle;
 extern TIM_HandleTypeDef Tim8Handle;
-#ifdef USE_UART1_232
-extern UART_HandleTypeDef UART1Handle;
-extern unsigned char UART1_STA;
-extern unsigned char RxBuffer1[RXBUFFER_SIZE];
-#endif
-extern UART_HandleTypeDef UART3Handle;
-extern unsigned char UART3_STA;
-extern unsigned char RxBuffer[RXBUFFER_SIZE];
-
+extern TIM_HandleTypeDef Tim6Handle;
+extern UART_HMI_t        UART_HMI;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -191,12 +184,13 @@ void SysTick_Handler(void)
   * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /*if (htim == &Tim8Handle)
+{ 
+  if (&Tim6Handle == htim)
   {
-    SEGGER_RTT_printf(0,"[Tim8]%d arrive\r\n",Tim8Handle.Instance.CNT);
-  }//if (htim == &Tim8Handle)
-  else */if (htim == &Tim7Handle)
+    SEGGER_RTT_printf(0,"\r\nUART Timeout\r\n");
+    UART_HMI.Status |= RX_CPLT;
+  }
+  if (&Tim7Handle == htim)
   {
     static char hsecond = 0;
     static char minute = 0;
@@ -216,7 +210,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 	SEGGER_RTT_printf(0,"\r\n%2dh%2dm\r\n",hour,minute);
     }
-  }//else if (htim == &Tim7Handle)
+  }//if (htim == &Tim7Handle)
 }
 
 /**
@@ -231,7 +225,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
   /* NOTE : This function Should not be modified, when the callback is needed,
             the __HAL_TIM_OC_DelayElapsedCallback could be implemented in the user file
    */
-  SEGGER_RTT_printf(0,"\r\n[IC_CaptureCallback]\r\n");
+  //SEGGER_RTT_printf(0,"\r\n[IC_CaptureCallback]\r\n");
 }
 
 /**
@@ -293,6 +287,16 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 /**
+  * @brief  This function handles TIM6 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void TIM6_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&Tim6Handle);
+}
+
+/**
   * @brief  This function handles TIM7 interrupt request.
   * @param  None
   * @retval None
@@ -345,19 +349,16 @@ void EXTI15_10_IRQHandler(void)
   */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-#ifdef USE_UART1_232
-  if(UartHandle == &UART1Handle)
+  if(USART1 == UartHandle->Instance)
   {
 	  /* Set transmission flag: transfer complete */
-	  UART1_STA |= TX_CPLT;
+	  SEGGER_RTT_printf(0,"\r\n[TxCplt]UART1\r\n");
   }
-#endif
-  if(UartHandle == &UART3Handle)
+  if(USART3 == UartHandle->Instance)
   {
 	  /* Set transmission flag: transfer complete */
-	  UART3_STA |= TX_CPLT;
+	  SEGGER_RTT_printf(0,"\r\n[TxCplt]UART3\r\n");
   }
-  
 }
 
 /**
@@ -369,21 +370,30 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
   */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-  //SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]\r\n");
-  
-#ifdef USE_UART1_232
-  if(UartHandle == &UART1Handle)
+  SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]\r\n");
+  if(USART_HMI == UartHandle->Instance)
   {
 	  /* Set transmission flag: receive complete */
-	  UART1_STA |= RX_CPLT;
+	  if(UART_HMI.Status & 0x7F)//不是第一个字节
+	  {
+		SEGGER_RTT_printf(0,"\r\n[RxCpltCB]TIM6:%x\r\n",
+				Tim6Handle.Instance->CNT);
+		Tim6Handle.Instance->CNT = 0;//清零计时
+	  }
+	  else
+	  {
+		HAL_TIM_Base_Start_IT(&Tim6Handle);//启动计时
+		SEGGER_RTT_printf(0,"\r\n[RxCpltCB]TIM6 Start\r\n");
+		UART_HMI.Status = 0;
+	  }
+	  UART_HMI.Status++;
+	  UART_HMI.pRxBuffer_in++;
+	  if(UART_HMI.RxBuffer <= (UART_HMI.pRxBuffer_in-RXBUFFER_SIZE))
+		//超出Buffer范围了
+		UART_HMI.pRxBuffer_in = UART_HMI.RxBuffer;
+
+	  HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
   }
-#endif
-  if(UartHandle == &UART3Handle)
-  {
-	  /* Set transmission flag: receive complete */
-	  UART3_STA |= RX_CPLT;
-  }
-  
 }
 
 /**
@@ -405,10 +415,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle)
   */
 void USART1_IRQHandler(void)
 {
-  //SEGGER_RTT_printf(0,"\r\n[USART1_IRQ]\r\n");
-#ifdef USE_UART1_232
-  HAL_UART_IRQHandler(&UART1Handle);
-#endif
+  HAL_UART_IRQHandler(&UART_HMI.Handle);
 }
 /**
   * @brief  This function handles UART interrupt request.  
@@ -417,8 +424,8 @@ void USART1_IRQHandler(void)
   */
 void USART3_IRQHandler(void)
 {
-  //SEGGER_RTT_printf(0,"\r\n[USART3_IRQ]\r\n");
-  HAL_UART_IRQHandler(&UART3Handle);
+  SEGGER_RTT_printf(0,"\r\n[]\r\n");
+  HAL_UART_IRQHandler(&UART_HMI.Handle);
 }
 /**
   * @}
