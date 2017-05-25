@@ -306,9 +306,10 @@ void valve_params_modify(uint8_t channel, valve_modify_t new_param)
 
     if(new_param.high_valid)
     {
-        count = (new_param.high_degree*1000 + new_param.high_fraction)//整数小数拼合
-                * coder_division                              //先乘编码器分度
-                / 360000;                                     //再除最大量程
+        //count = (new_param.high_degree*1000 + new_param.high_fraction)//整数小数拼合
+        //        * coder_division                              //先乘编码器分度
+        //        / 360000;                                     //再除最大量程
+	count = new_param.high_duration;
         p_valve_param->high_duration = count;
     }
 }
@@ -346,8 +347,9 @@ void valve_params_display(uint8_t channel, valve_display_t * p_param)
     }
     p_param->on_offs_mask = p_valve_param->on_offs_mask;       //开关参数有效位
 
-    degree = p_valve_param->high_duration * 360000             //先乘最大量程
-             / coder_division;                                 //再除编码器分度
-    p_param->high_degree = degree / 1000;                      //取整数部分
-    p_param->high_fraction = degree % 1000;                    //取小数部分
+    //degree = p_valve_param->high_duration * 360000             //先乘最大量程
+    //         / coder_division;                                 //再除编码器分度
+    //p_param->high_degree = degree / 1000;                      //取整数部分
+    //p_param->high_fraction = degree % 1000;                    //取小数部分
+    p_param->high_duration = p_valve_param->high_duration;
 }

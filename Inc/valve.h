@@ -20,7 +20,7 @@ typedef struct valve_param_s
 {
   on_off    on_offs[ON_OFF_MAX];
   uint16_t  on_offs_mask;   //有效的开关的掩码，为1的bit所对应的on_offs有效
-  uint16_t  high_duration;  //高压通路的持续时间
+  uint16_t  high_duration;  //高压通路的持续时间，以ms为单位
 } valve_param_t;
 
 typedef struct valve_modify_s
@@ -29,8 +29,9 @@ typedef struct valve_modify_s
   uint16_t  on_fraction;  //打开角度的小数部分
   uint16_t  off_degree;   //关闭角度的整数部分
   uint16_t  off_fraction; //关闭角度的小数部分
-  uint16_t  high_degree;  //高压持续角度的整数部分
-  uint16_t  high_fraction;//高压持续角度的小数部分
+//  uint16_t  high_degree;  //高压持续角度的整数部分
+//  uint16_t  high_fraction;//高压持续角度的小数部分
+  uint16_t  high_duration;//高压持续时间，以ms为单位
   uint8_t   on_off_valid; //开关参数是否有效状态位设置，1为有效，0无效
   uint8_t   high_valid;   //是否更新高压持续值，1为有效，0无效
   uint8_t   on_off_index; //设置第on_offs_index对开关的参数
@@ -42,8 +43,9 @@ typedef struct valve_display_s
   uint16_t  on_fraction[ON_OFF_MAX];  //打开角度的小数部分
   uint16_t  off_degree[ON_OFF_MAX];   //关闭角度的整数部分
   uint16_t  off_fraction[ON_OFF_MAX]; //关闭角度的小数部分
-  uint16_t  high_degree;              //高压持续角度的整数部分
-  uint16_t  high_fraction;            //高压持续角度的小数部分
+//  uint16_t  high_degree;              //高压持续角度的整数部分
+//  uint16_t  high_fraction;            //高压持续角度的小数部分
+  uint16_t  high_duration;//高压持续时间，以ms为单位
   uint16_t  on_offs_mask; //开关参数是否有效状态位设置，1为有效，0无效
 } valve_display_t;
 

@@ -73,10 +73,11 @@ void cmd_p(void)
             else
         	    SEGGER_RTT_printf(0,"-\r\n");
     }
-    SEGGER_RTT_printf(0,"high_duration\r\n");
-    SEGGER_RTT_printf(0,"high:\t%3d.%3d\r\n",
-        	    valve_display.high_degree,
-        	    valve_display.high_fraction);
+    SEGGER_RTT_printf(0,"high_duration:\t%3d\r\n",
+		    valve_display.high_duration);
+    //SEGGER_RTT_printf(0,"high:\t%3d.%3d\r\n",
+    //    	    valve_display.high_degree,
+    //    	    valve_display.high_fraction);
 }
 
 /**@brief  修改通道参数的命令函数
@@ -135,18 +136,24 @@ void cmd_m(void)
     if(key=='Y'||key=='y'||key=='1')
     {
             valve_modify.high_valid = 1;
-            SEGGER_RTT_printf(0,"\r\nhigh_degree:");
-            valve_modify.high_degree  = SEGGER_RTT_WaitKey() - '0';
-            valve_modify.high_degree *= 10;
-            valve_modify.high_degree += SEGGER_RTT_WaitKey() - '0';
-            valve_modify.high_degree *= 10;
-            valve_modify.high_degree += SEGGER_RTT_WaitKey() - '0';
-            SEGGER_RTT_printf(0,"\r\nhigh_fraction:");
-            valve_modify.high_fraction  = SEGGER_RTT_WaitKey() - '0';
-            valve_modify.high_fraction *= 10;
-            valve_modify.high_fraction += SEGGER_RTT_WaitKey() - '0';
-            valve_modify.high_fraction *= 10;
-            valve_modify.high_fraction += SEGGER_RTT_WaitKey() - '0';
+            //SEGGER_RTT_printf(0,"\r\nhigh_degree:");
+            //valve_modify.high_degree  = SEGGER_RTT_WaitKey() - '0';
+            //valve_modify.high_degree *= 10;
+            //valve_modify.high_degree += SEGGER_RTT_WaitKey() - '0';
+            //valve_modify.high_degree *= 10;
+            //valve_modify.high_degree += SEGGER_RTT_WaitKey() - '0';
+            //SEGGER_RTT_printf(0,"\r\nhigh_fraction:");
+            //valve_modify.high_fraction  = SEGGER_RTT_WaitKey() - '0';
+            //valve_modify.high_fraction *= 10;
+            //valve_modify.high_fraction += SEGGER_RTT_WaitKey() - '0';
+            //valve_modify.high_fraction *= 10;
+            //valve_modify.high_fraction += SEGGER_RTT_WaitKey() - '0';
+            SEGGER_RTT_printf(0,"\r\nhigh_duration:");
+	    valve_modify.high_duration  = SEGGER_RTT_WaitKey() - '0';
+            valve_modify.high_duration *= 10;
+            valve_modify.high_duration += SEGGER_RTT_WaitKey() - '0';
+            valve_modify.high_duration *= 10;
+            valve_modify.high_duration += SEGGER_RTT_WaitKey() - '0';
     }
     else
             valve_modify.high_valid = 0;

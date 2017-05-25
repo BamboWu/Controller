@@ -99,8 +99,8 @@ int main(void)
     /* Insert delay 100 ms */
     //HAL_Delay(100);
     //SEGGER_RTT_printf(0,"\r\n[loop%3d]\r\n",i++);
-    //cmd_main();
-    hmi_main();
+    cmd_main();
+    //hmi_main();
     //hmi_test();
     //hmi_test_485();
   }  //while(1)
@@ -188,7 +188,6 @@ void Indication_Config(void)
   Tim7Handle.Init.Prescaler         = 60000 - 1;
   Tim7Handle.Init.ClockDivision     = 0;
   Tim7Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-  Tim7Handle.Init.RepetitionCounter = 0;
 
   if (HAL_TIM_Base_Init(&Tim7Handle) != HAL_OK)
 	  SEGGER_RTT_printf(0,"\r\n[Indication_Config]TIM Init fail\r\n");

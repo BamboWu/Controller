@@ -1,6 +1,7 @@
 #include "coder.h"
 
 TIM_HandleTypeDef Tim8Handle;             //TIM8的结构体
+TIM_HandleTypeDef Tim5Handle;             //TIM5的结构体
 
 coder_evt_t   coder_evts[CODER_EVT_MAX];
 coder_evt_t * pcoder_evt_now   = NULL;
@@ -64,6 +65,17 @@ void coder_init(uint16_t div, uint8_t dir)
 
   //HAL_TIM_Encoder_Start(&Tim8Handle,TIM_CHANNEL_1);
   //HAL_TIM_Encoder_Start(&Tim8Handle,TIM_CHANNEL_2);
+
+  Tim5Handle.Instance = TIM5;
+  Tim5Handle.Init.Period            = 2 - 1;//每1ms计时溢出一次
+  Tim5Handle.Init.Prescaler         = 36000 - 1;//72MHz系统时钟分频
+  Tim5Handle.Init.ClockDivision     = 0;
+  Tim5Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
+
+  if (HAL_TIM_Base_Init(&Tim5Handle) != HAL_OK)
+	  SEGGER_RTT_printf(0,"\r\n[coder_init]TIM5 Init fail\r\n");
+  if (HAL_TIM_Base_Start_IT(&Tim5Handle) != HAL_OK)
+	  SEGGER_RTT_printf(0,"\r\n[coder_init]TIM5 IT Init fail\r\n");
 
   coder_evt_gather();
 }
@@ -220,9 +232,9 @@ void coder_evt_gather(void)
 	      evt.evt_type = channel_on;
 	      evt.coder_count = valve_params[channel].on_offs[i][0];
 	      coder_evt_insert(evt);
-	      evt.evt_type = channel_off_H;
-	      evt.coder_count += valve_params[channel].high_duration;
-	      coder_evt_insert(evt);
+	      //evt.evt_type = channel_off_H;//高压关闭不依赖于编码器
+	      //evt.coder_count += valve_params[channel].high_duration;
+	      //coder_evt_insert(evt);//改用定时器来关闭
 	      evt.evt_type = channel_off_L;
 	      evt.coder_count = valve_params[channel].on_offs[i][1];
 	      coder_evt_insert(evt);

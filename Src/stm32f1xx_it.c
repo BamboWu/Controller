@@ -56,7 +56,11 @@
 extern TIM_HandleTypeDef Tim7Handle;
 extern TIM_HandleTypeDef Tim8Handle;
 extern TIM_HandleTypeDef Tim6Handle;
+extern TIM_HandleTypeDef Tim5Handle;
 extern UART_HMI_t        UART_HMI;
+
+extern valve_param_t valve_params[13];
+uint16_t high_left[13] = {0};              //高压剩余ms数，第0元素弃用
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -185,9 +189,26 @@ void SysTick_Handler(void)
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 { 
+  if (&Tim5Handle == htim)
+  {
+     uint8_t channel_NO;
+     for(channel_NO = 1;12 >= channel_NO;++channel_NO)
+     {
+	 if(1 < high_left[channel_NO])//未归零
+	 {
+	      --high_left[channel_NO];
+	 }
+	 else if(1 == high_left[channel_NO])//time to off high output
+	 {
+	      --high_left[channel_NO];
+	      valve_channel_off(channel_NO,1);
+	 }
+	 else;
+     }
+  }
   if (&Tim6Handle == htim)
   {
-    SEGGER_RTT_printf(0,"\r\nUART Timeout\r\n");
+    //SEGGER_RTT_printf(0,"\r\nUART Timeout\r\n");
     UART_HMI.Status |= RX_CPLT;
   }
   if (&Tim7Handle == htim)
@@ -247,12 +268,19 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	switch(pcoder_evt_now->evt_type)
 	{
 	    case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
+			       if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
+			       high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
+			       else//高压持续时间为零
+			       valve_channel_off(pcoder_evt_now->evt_channel,1);
+			       SEGGER_RTT_printf(0,"\r\n[high]channl%x=%x\r\n",
+					       pcoder_evt_now->evt_channel,
+					       valve_params[pcoder_evt_now->evt_channel].high_duration);
 			       break;
 	    case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
-				break;
+			       break;
 	    case channel_off_L:valve_channel_off(pcoder_evt_now->evt_channel,0);
-				break;
-	    default:            break;
+			       break;
+	    default:           break;
 	}
 	//SEGGER_RTT_printf(0,"[OC_handler]one evt OK\r\n");
 	//SEGGER_RTT_WaitKey();
@@ -267,6 +295,13 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	    switch(pcoder_evt_now->evt_type)
 	    {
 		case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
+			           if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
+			           high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
+			           else//高压持续时间为零
+			           valve_channel_off(pcoder_evt_now->evt_channel,1);
+			           SEGGER_RTT_printf(0,"\r\n[high]channl%x=%x\r\n",
+			    		       pcoder_evt_now->evt_channel,
+			    		       valve_params[pcoder_evt_now->evt_channel].high_duration);
 				   break;
 		case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
 				   break;
@@ -284,6 +319,16 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	//如果是最后一个事件，则该设置的中断count在达到之前先被coder_Z中覆盖
     }//if(pcoder_evt_now != NULL)
   }
+}
+
+/**
+  * @brief  This function handles TIM5 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void TIM5_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&Tim5Handle);
 }
 
 /**
@@ -352,12 +397,12 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
   if(USART1 == UartHandle->Instance)
   {
 	  /* Set transmission flag: transfer complete */
-	  SEGGER_RTT_printf(0,"\r\n[TxCplt]UART1\r\n");
+	  //SEGGER_RTT_printf(0,"\r\n[TxCplt]UART1\r\n");
   }
   if(USART3 == UartHandle->Instance)
   {
 	  /* Set transmission flag: transfer complete */
-	  SEGGER_RTT_printf(0,"\r\n[TxCplt]UART3\r\n");
+	  //SEGGER_RTT_printf(0,"\r\n[TxCplt]UART3\r\n");
   }
 }
 
@@ -370,20 +415,20 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
   */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-  SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]\r\n");
+  //SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]\r\n");
   if(USART_HMI == UartHandle->Instance)
   {
 	  /* Set transmission flag: receive complete */
 	  if(UART_HMI.Status & 0x7F)//不是第一个字节
 	  {
-		SEGGER_RTT_printf(0,"\r\n[RxCpltCB]TIM6:%x\r\n",
-				Tim6Handle.Instance->CNT);
+		//SEGGER_RTT_printf(0,"\r\n[RxCpltCB]TIM6:%x\r\n",
+		//		Tim6Handle.Instance->CNT);
 		Tim6Handle.Instance->CNT = 0;//清零计时
 	  }
 	  else
 	  {
 		HAL_TIM_Base_Start_IT(&Tim6Handle);//启动计时
-		SEGGER_RTT_printf(0,"\r\n[RxCpltCB]TIM6 Start\r\n");
+		//SEGGER_RTT_printf(0,"\r\n[RxCpltCB]TIM6 Start\r\n");
 		UART_HMI.Status = 0;
 	  }
 	  UART_HMI.Status++;
@@ -424,7 +469,7 @@ void USART1_IRQHandler(void)
   */
 void USART3_IRQHandler(void)
 {
-  SEGGER_RTT_printf(0,"\r\n[]\r\n");
+  //SEGGER_RTT_printf(0,"\r\n[]\r\n");
   HAL_UART_IRQHandler(&UART_HMI.Handle);
 }
 /**

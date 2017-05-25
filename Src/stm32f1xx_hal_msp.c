@@ -108,6 +108,19 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 {
   GPIO_InitTypeDef  GPIO_InitStruct = {0}; //GPIO初始化用到的结构体
   
+  if(TIM5 == htim->Instance)
+  { 
+      /*##-1- Enable peripheral clock #############################*/
+      /* TIM5 Peripheral clock enable */
+      __HAL_RCC_TIM5_CLK_ENABLE();
+  
+      /*##-2- Configure the NVIC for TIM5 ####################################*/
+      /* Set the TIM5 priority */
+      HAL_NVIC_SetPriority(TIM5_IRQn, 1, 3);
+
+      /* Enable the TIMx global Interrupt */
+      HAL_NVIC_EnableIRQ(TIM5_IRQn);
+  }
   if(TIM7 == htim->Instance)
   { 
       /*##-1- Enable peripheral clock #############################*/
