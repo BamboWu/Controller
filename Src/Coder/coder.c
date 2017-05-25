@@ -98,56 +98,54 @@ void coder_Z(void)
 void coder_evt_insert(coder_evt_t evt)
 {
   coder_evt_t * p_coder_evt = pcoder_evt_first;
-  coder_evt_t * p_coder_evt_tmp;
 
-  if(p_coder_evt == NULL)//一个事件都还没有
+  if(NULL == pcoder_evt_free)//达到事件上限，无法插入新事件
+	  return;
+  else
   {
-      pcoder_evt_first = pcoder_evt_free;//记录第一个事件
-      pcoder_evt_free = pcoder_evt_free -> next;//把第一个空闲的evt结构体挪用
-      pcoder_evt_first -> next = NULL;
-      pcoder_evt_first -> coder_count = evt.coder_count;
-      pcoder_evt_first -> evt_channel = evt.evt_channel;
-      pcoder_evt_first -> evt_type = evt.evt_type;
-  }
-  else                   //至少存在一个事件
-  {
-      if(pcoder_evt_free == NULL)//达到事件上限，无法插入新事件
+      pcoder_evt_free -> coder_count = evt.coder_count;
+      pcoder_evt_free -> evt_channel = evt.evt_channel;
+      pcoder_evt_free -> evt_type    = evt.evt_type;
+
+      if(NULL == pcoder_evt_first)//一个事件都还没有
       {
-	 //SEGGER_RTT_printf(0,"\r\n[coder_evt_insert]pcoder_evt_free==NULL\r\n");
-	 return;
+	  pcoder_evt_first = pcoder_evt_free;//记录及一个事件
+	  pcoder_evt_free  = pcoder_evt_free -> next;//挪用第一个空闲的evt结构体
+	  pcoder_evt_first -> prev = pcoder_evt_first;//自构成循环
+	  pcoder_evt_first -> next = NULL;
       }
       else
       {
-	 p_coder_evt_tmp = pcoder_evt_free;
-	 pcoder_evt_free = pcoder_evt_free -> next;//挪用第一个空闲的evt结构体
-	 p_coder_evt_tmp -> coder_count = evt.coder_count;
-	 p_coder_evt_tmp -> evt_channel = evt.evt_channel;
-	 p_coder_evt_tmp -> evt_type    = evt.evt_type;
-      }
-
-      if(evt.coder_count<(p_coder_evt->coder_count))//新事件比原第一个事件早
-      {
-	  p_coder_evt_tmp -> next = p_coder_evt;
-	  pcoder_evt_first = p_coder_evt_tmp;//提前第一个事件
-      }
-      else//新事件不比原第一个事件早
-      {
-	  while(p_coder_evt->next)//后面还有事件
+	  while(evt.coder_count>=(p_coder_evt->coder_count))
+	  //新事件不早于当前比较事件
 	  {
-	      if(evt.coder_count<(p_coder_evt->next->coder_count))
-	      //新事件比下一事件早
-	          break;
-	      else
-		  p_coder_evt = p_coder_evt -> next;
+		p_coder_evt = p_coder_evt -> next;
+		if(NULL == p_coder_evt)//已过了最后一个事件
+			break;
 	  }
-	  //p_coder_evt指向最后一个早于新事件的事件，后一事件或没有或晚于新事件
-
-	  p_coder_evt_tmp -> next = p_coder_evt -> next;
-	  p_coder_evt -> next = p_coder_evt_tmp;
-      }//else(evt.coder_count>=(pcoder_evt_first->coder_count))
-  }//else(pcoder_evt_first!=NULL)
-  //SEGGER_RTT_printf(0,"\r\n[evt_insert]p_first=%x\r\n",pcoder_evt_first);
-  //SEGGER_RTT_printf(0,"\r\n[evt_insert]p_coder=%x\r\n",p_coder_evt);
+	  if(p_coder_evt)//有找到晚于新事件的事件
+	  {
+		pcoder_evt_free -> prev = p_coder_evt -> prev;
+		if(pcoder_evt_first == p_coder_evt)//插在了第一个事件前
+		    pcoder_evt_first = pcoder_evt_free;//前挪一个事件
+		else
+		    pcoder_evt_free -> prev -> next = pcoder_evt_free;
+		p_coder_evt -> prev = pcoder_evt_free;
+		pcoder_evt_free = pcoder_evt_free -> next;//挪用first free evt
+		p_coder_evt -> prev -> next = p_coder_evt;
+	  }
+	  else//添加到事件链末尾
+	  {
+		pcoder_evt_free -> prev = pcoder_evt_first -> prev;
+		pcoder_evt_free -> prev -> next = pcoder_evt_free;
+		pcoder_evt_first -> prev = pcoder_evt_free;
+		pcoder_evt_free = pcoder_evt_free -> next;//挪用first free evt
+		pcoder_evt_first -> prev -> next = NULL;
+	  }
+      }
+  }
+  SEGGER_RTT_printf(0,"\r\n[evt_insert]p_first=%x\r\n",pcoder_evt_first);
+  SEGGER_RTT_printf(0,"\r\n[evt_insert]p_coder=%x\r\n",p_coder_evt);
 }
 
 /**@breif 用于移除一个指定内容的coder event的函数
@@ -155,51 +153,60 @@ void coder_evt_insert(coder_evt_t evt)
 void coder_evt_remove(coder_evt_t evt)
 {
   coder_evt_t * p_coder_evt = pcoder_evt_first;
-  coder_evt_t * p_coder_evt_tmp = NULL;
 
   if(p_coder_evt == NULL)//一个事件都还没有
   {
       //SEGGER_RTT_printf(0,"\r\n[coder_evt_remove]pcoder_evt_first==NULL\r\n");
       return;
   }
-  //至少存在一个事件
-  if((p_coder_evt->coder_count==evt.coder_count)&&
-     (p_coder_evt->evt_channel==evt.evt_channel)&&
-     (p_coder_evt->evt_type   ==evt.evt_type))//要移除第一个事件
+  else//至少存在一个事件
   {
-     p_coder_evt_tmp = p_coder_evt;
-     pcoder_evt_first = pcoder_evt_first -> next;
+      while(evt.coder_count > (p_coder_evt->coder_count))
+      {
+	   p_coder_evt = p_coder_evt ->next;
+	   if(NULL == p_coder_evt)//移到最后了也没找到不早于移除事件的
+		   return;
+      }
+      while(evt.coder_count == (p_coder_evt->coder_count))
+      {
+	   if(evt.evt_channel != (p_coder_evt->evt_channel))//通道不符
+	   {
+		   p_coder_evt = p_coder_evt -> next;
+		   if(NULL == p_coder_evt)//移到了最后也没有找到移除事件
+			   return;
+	   }
+	   else if(evt.evt_type != (p_coder_evt->evt_type))//事件类型不符
+	   {
+		   p_coder_evt = p_coder_evt -> next;
+		   if(NULL == p_coder_evt)//移到了最后也没有找到移除事件
+			   return;
+	   }
+	   else//当前p_coder_evt指向事件为要删除的
+	   {
+		SEGGER_RTT_printf(0,"\r\n[evt_remove]p_coder=%x\r\n",p_coder_evt);
+		if(pcoder_evt_first == p_coder_evt)//要移除第一个
+		{
+		        pcoder_evt_first = p_coder_evt -> next;//事件头后移
+		        if(p_coder_evt -> next)//不是要移除最后一个
+			    p_coder_evt -> next -> prev = p_coder_evt -> prev;
+		        p_coder_evt -> next = pcoder_evt_free;
+		        pcoder_evt_free = p_coder_evt;//归还了一个evt结构体
+		}
+		else//要移除的不是第一个
+		{
+		        if(NULL == p_coder_evt -> next)//要移除最后一个
+		     	    pcoder_evt_first -> prev = p_coder_evt -> prev;
+		        else//不是要移除最后一个
+		     	    p_coder_evt -> next -> prev = p_coder_evt -> prev;
+		        p_coder_evt -> prev -> next = p_coder_evt -> next;
+		        p_coder_evt -> next = pcoder_evt_free;
+		        pcoder_evt_free = p_coder_evt;//归还了一个evt结构体
+		}
+		SEGGER_RTT_printf(0,"\r\n[evt_remove]p_first=%x\r\n",pcoder_evt_first);
+		break;
+	   }
+      }
   }
-  else//不是移除第一个事件
-  {
-     while(p_coder_evt->next)//后面还有事件
-     {
-	 p_coder_evt_tmp = p_coder_evt->next;
-         if((p_coder_evt_tmp->coder_count==evt.coder_count)&&
-	    (p_coder_evt_tmp->evt_channel==evt.evt_channel)&&
-	    (p_coder_evt_tmp->evt_type   ==evt.evt_type))//找到指定事件
-		 break;
-	 else
-		 p_coder_evt = p_coder_evt_tmp;//移动到下一个事件
-	 if((p_coder_evt->coder_count)>evt.coder_count)//之后事件一定都更迟
-		 break;
-     }
-
-     if(p_coder_evt_tmp==NULL)//第一个事件不是，后面又没有第二个事件了
-     {
-	 //SEGGER_RTT_printf(0,"[coder_evt_remove]p_coder_evt_tmp==NULL\r\n");
-	 return;
-     }
-     else if(p_coder_evt==p_coder_evt_tmp)//说明不是找到指定事件而break出来的
-     {
-	 //SEGGER_RTT_printf(0,"[coder_evt_remove]p_coder_evt==p_coder_evt_tmp\r\n");
-	 return;
-     }
-     else
-	 p_coder_evt->next = p_coder_evt_tmp->next;//bypass the event to remove
-  }//else 不是移除第一个事件
-  p_coder_evt_tmp -> next = pcoder_evt_free;
-  pcoder_evt_free = p_coder_evt_tmp;//归还一个evt结构体到free链表
 }
 
 /**@brief 用于从valve_params生成coder_evts的函数
@@ -216,8 +223,10 @@ void coder_evt_gather(void)
       coder_evts[i].coder_count = 0;
       coder_evts[i].evt_channel = 0;
       coder_evts[i].evt_type    = channel_keep;
+      coder_evts[i].prev        = &coder_evts[i-1];
       coder_evts[i].next        = &coder_evts[i+1];
   }
+  coder_evts[0].prev = NULL;
   coder_evts[CODER_EVT_MAX-1].next = NULL;
   pcoder_evt_free = &coder_evts[0];
   pcoder_evt_first = NULL;

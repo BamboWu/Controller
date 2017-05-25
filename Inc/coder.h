@@ -22,6 +22,7 @@ struct coder_evt_s
     uint16_t coder_count;
     uint8_t  evt_channel;
     coder_evt_type evt_type;
+    coder_evt_t * prev;
     coder_evt_t * next;
 };
 

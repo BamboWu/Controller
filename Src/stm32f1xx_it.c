@@ -272,9 +272,6 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 			       high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
 			       else//高压持续时间为零
 			       valve_channel_off(pcoder_evt_now->evt_channel,1);
-			       SEGGER_RTT_printf(0,"\r\n[high]channl%x=%x\r\n",
-					       pcoder_evt_now->evt_channel,
-					       valve_params[pcoder_evt_now->evt_channel].high_duration);
 			       break;
 	    case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
 			       break;
@@ -299,9 +296,6 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 			           high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
 			           else//高压持续时间为零
 			           valve_channel_off(pcoder_evt_now->evt_channel,1);
-			           SEGGER_RTT_printf(0,"\r\n[high]channl%x=%x\r\n",
-			    		       pcoder_evt_now->evt_channel,
-			    		       valve_params[pcoder_evt_now->evt_channel].high_duration);
 				   break;
 		case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
 				   break;
