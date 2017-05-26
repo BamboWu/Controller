@@ -7,6 +7,7 @@
 
 #define TIM_CHANNEL_12  ((uint32_t)0x1212)//让Encoder的Start Stop函数，进default
 #define CODER_EVT_MAX   (ON_OFF_MAX*3)*12 //最多可能有的事件数=开关数*3*12个通道
+#define EVT_RETURN_DIFF 5                 //反转count差
 
 typedef enum
 {

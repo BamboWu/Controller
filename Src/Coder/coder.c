@@ -49,6 +49,7 @@ void coder_init(uint16_t div, uint8_t dir)
   Tim8Handle.State = HAL_TIM_STATE_RESET;//这样可以让做OC_Init时再进OC_Msp函数
   HAL_TIM_OC_Init(&Tim8Handle);
   HAL_TIM_OC_ConfigChannel(&Tim8Handle,&OCConfig,TIM_CHANNEL_3);
+  HAL_TIM_OC_ConfigChannel(&Tim8Handle,&OCConfig,TIM_CHANNEL_4);
 
   __HAL_RCC_GPIOB_CLK_ENABLE();  //打开GPIOB口的时钟
 
@@ -86,10 +87,18 @@ void coder_Z(void)
 {
   HAL_TIM_Encoder_Stop(&Tim8Handle,TIM_CHANNEL_12);
   Tim8Handle.Instance->CNT = 0;//清零重启
-  if(pcoder_evt_first != NULL)//设置第一个事件点
+  if(pcoder_evt_first)//设置第一个事件点
+  {
 	Tim8Handle.Instance->CCR3 = pcoder_evt_first->coder_count;
+	SEGGER_RTT_printf(0,"\r\n[coder_Z]first count:%4d\r\n",pcoder_evt_first->coder_count);
+      	if(pcoder_evt_first->next)//第一个事件点不是最后一个事件点
+	    Tim8Handle.Instance->CCR4 = pcoder_evt_first->prev->coder_count - EVT_RETURN_DIFF;//为反转设置最后一个事件点
+	SEGGER_RTT_printf(0,"\r\n[coder_Z]last count:%4d\r\n",pcoder_evt_first->prev->coder_count);
+  }
   pcoder_evt_now = pcoder_evt_first;
+  SEGGER_RTT_printf(0,"\r\n[coder_Z]pcoder_evt_now:%x\r\n",pcoder_evt_now);
   HAL_TIM_OC_Start_IT(&Tim8Handle,TIM_CHANNEL_3);
+  HAL_TIM_OC_Start_IT(&Tim8Handle,TIM_CHANNEL_4);
   HAL_TIM_Encoder_Start(&Tim8Handle,TIM_CHANNEL_12);
 }
 
@@ -144,8 +153,8 @@ void coder_evt_insert(coder_evt_t evt)
 	  }
       }
   }
-  SEGGER_RTT_printf(0,"\r\n[evt_insert]p_first=%x\r\n",pcoder_evt_first);
-  SEGGER_RTT_printf(0,"\r\n[evt_insert]p_coder=%x\r\n",p_coder_evt);
+  //SEGGER_RTT_printf(0,"\r\n[evt_insert]p_first=%x\r\n",pcoder_evt_first);
+  //SEGGER_RTT_printf(0,"\r\n[evt_insert]p_coder=%x\r\n",p_coder_evt);
 }
 
 /**@breif 用于移除一个指定内容的coder event的函数
@@ -183,7 +192,7 @@ void coder_evt_remove(coder_evt_t evt)
 	   }
 	   else//当前p_coder_evt指向事件为要删除的
 	   {
-		SEGGER_RTT_printf(0,"\r\n[evt_remove]p_coder=%x\r\n",p_coder_evt);
+		//SEGGER_RTT_printf(0,"\r\n[evt_remove]p_coder=%x\r\n",p_coder_evt);
 		if(pcoder_evt_first == p_coder_evt)//要移除第一个
 		{
 		        pcoder_evt_first = p_coder_evt -> next;//事件头后移
@@ -202,7 +211,7 @@ void coder_evt_remove(coder_evt_t evt)
 		        p_coder_evt -> next = pcoder_evt_free;
 		        pcoder_evt_free = p_coder_evt;//归还了一个evt结构体
 		}
-		SEGGER_RTT_printf(0,"\r\n[evt_remove]p_first=%x\r\n",pcoder_evt_first);
+		//SEGGER_RTT_printf(0,"\r\n[evt_remove]p_first=%x\r\n",pcoder_evt_first);
 		break;
 	   }
       }

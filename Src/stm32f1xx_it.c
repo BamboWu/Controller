@@ -256,46 +256,24 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
   */
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  if (htim == &Tim8Handle)
+  if (&Tim8Handle == htim)
   {
-    //SEGGER_RTT_printf(0,"[Tim8]CNT = %d\r\n",htim->Instance->CNT);
-    //htim->Instance->CCR3 += 1;
+    extern coder_evt_t * pcoder_evt_first;
     extern coder_evt_t * pcoder_evt_now;
-    if(pcoder_evt_now != NULL)
+
+    SEGGER_RTT_printf(0,"\r\n[TIM8]OC=%4d\r\n",htim->Instance->CNT);
+    if(HAL_TIM_ACTIVE_CHANNEL_3 == htim->Channel)//正向触发
     {
-	//SEGGER_RTT_printf(0,"[OC_handler]to do one evt\r\n");
-	//SEGGER_RTT_WaitKey();
-	switch(pcoder_evt_now->evt_type)
-	{
-	    case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
-			       if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
-			       high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
-			       else//高压持续时间为零
-			       valve_channel_off(pcoder_evt_now->evt_channel,1);
-			       break;
-	    case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
-			       break;
-	    case channel_off_L:valve_channel_off(pcoder_evt_now->evt_channel,0);
-			       break;
-	    default:           break;
-	}
-	//SEGGER_RTT_printf(0,"[OC_handler]one evt OK\r\n");
-	//SEGGER_RTT_WaitKey();
-	while(pcoder_evt_now->next!=NULL) //还不是最后一个事件
-	{
-	    //SEGGER_RTT_printf(0,"[OC_handler]to do one more evt?\r\n");
-	    //SEGGER_RTT_WaitKey();
-	    if(pcoder_evt_now->coder_count<pcoder_evt_now->next->coder_count)
-		break;//下一事件时间点更晚，就跳出
-	    //下一个事件的时间点与当前事件相同
-	    pcoder_evt_now = pcoder_evt_now->next;
+	SEGGER_RTT_printf(0,"\r\n[TIM8]Channel3\r\n");
+	if(pcoder_evt_now)
+    	{
 	    switch(pcoder_evt_now->evt_type)
-	    {
-		case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
-			           if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
-			           high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
-			           else//高压持续时间为零
-			           valve_channel_off(pcoder_evt_now->evt_channel,1);
+    	    {
+	        case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
+		    		   if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
+					 high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
+				   else//高压持续时间为零
+					 valve_channel_off(pcoder_evt_now->evt_channel,1);
 				   break;
 		case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
 				   break;
@@ -303,15 +281,84 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 				   break;
 		default:           break;
 	    }
-	    //SEGGER_RTT_printf(0,"[OC_handler]one more evt OK\r\n");
-	    //SEGGER_RTT_WaitKey();
-	}
-	//当前count点的事件已经全部执行完
-	if(pcoder_evt_now->next!=NULL)//还不是最后一个事件
-	    pcoder_evt_now = pcoder_evt_now->next;
-	Tim8Handle.Instance->CCR3 = pcoder_evt_now->coder_count;
-	//如果是最后一个事件，则该设置的中断count在达到之前先被coder_Z中覆盖
-    }//if(pcoder_evt_now != NULL)
+	    while(pcoder_evt_now->next!=NULL) //还不是最后一个事件
+	    {
+		if(pcoder_evt_now->coder_count<pcoder_evt_now->next->coder_count)
+			break;//下一事件时间点更晚，就跳出
+		//下一个事件的时间点与当前事件相同
+		pcoder_evt_now = pcoder_evt_now->next;
+		switch(pcoder_evt_now->evt_type)
+		{
+			case channel_on   :valve_channel_on(pcoder_evt_now->evt_channel);
+			if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
+				high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
+			else//高压持续时间为零
+				valve_channel_off(pcoder_evt_now->evt_channel,1);
+			break;
+			case channel_off_H:valve_channel_off(pcoder_evt_now->evt_channel,1);
+			break;
+			case channel_off_L:valve_channel_off(pcoder_evt_now->evt_channel,0);
+			break;
+			default:           break;
+		}
+	    }
+	    //当前count点的事件已经全部执行完
+	    Tim8Handle.Instance->CCR4 = pcoder_evt_now->coder_count - EVT_RETURN_DIFF;
+	    //如果是第一个事件，则该设置的中断count可能在达到前被coder_Z中断覆盖
+	    if(pcoder_evt_now->next!=NULL)//还不是最后一个事件
+		    pcoder_evt_now = pcoder_evt_now->next;
+	    else//最后一个事件，将当前事件指针指回第一个事件
+		    pcoder_evt_now = pcoder_evt_first;
+	    Tim8Handle.Instance->CCR3 = pcoder_evt_now->coder_count;
+	    //如果是最后一个事件，则该设置的中断count在达到前先被coder_Z中断覆盖
+	}//if(pcoder_evt_now)
+    }//if(HAL_TIM_ACTIVE_CHANNEL_3 == htim->Channel)
+    else if(HAL_TIM_ACTIVE_CHANNEL_4 == htim->Channel)
+    {
+	SEGGER_RTT_printf(0,"\r\n[TIM8]Channel4\r\n");
+	if(pcoder_evt_now)
+    	{
+	    pcoder_evt_now = pcoder_evt_now -> prev;//向前移一个事件
+	    switch(pcoder_evt_now->evt_type)
+    	    {
+	        case channel_on   :valve_channel_off(pcoder_evt_now->evt_channel,0);
+				   valve_channel_off(pcoder_evt_now->evt_channel,1);
+				   break;
+		case channel_off_L:valve_channel_on(pcoder_evt_now->evt_channel);
+		    		   if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
+					 high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
+				   else//高压持续时间为零
+					 valve_channel_off(pcoder_evt_now->evt_channel,1);
+				   break;
+		default:           break;
+	    }
+	    while(pcoder_evt_now->prev!=NULL) //这是一个恒满足的条件
+	    {
+		if((pcoder_evt_now->coder_count)>(pcoder_evt_now->prev->coder_count))
+			break;//前一事件时间点更早，就跳出
+		if(pcoder_evt_first == pcoder_evt_now)
+			break;//已到达第一事件点
+		//前一个事件的时间点与当前事件相同
+		pcoder_evt_now = pcoder_evt_now->prev;
+		switch(pcoder_evt_now->evt_type)
+		{
+			case channel_on   :valve_channel_off(pcoder_evt_now->evt_channel,0);
+					   valve_channel_off(pcoder_evt_now->evt_channel,1);
+			break;
+			case channel_off_L:valve_channel_on(pcoder_evt_now->evt_channel);
+			if(valve_params[pcoder_evt_now->evt_channel].high_duration)//高压持续时间非零
+				high_left[pcoder_evt_now->evt_channel] = valve_params[pcoder_evt_now->evt_channel].high_duration;//加载高压持续时间
+			else//高压持续时间为零
+				valve_channel_off(pcoder_evt_now->evt_channel,1);
+			break;
+			default:           break;
+		}
+	    }
+	    //当前count点的事件已经全部执行完
+	    Tim8Handle.Instance->CCR3 = pcoder_evt_now->coder_count;
+	    Tim8Handle.Instance->CCR4 = pcoder_evt_now->prev->coder_count - EVT_RETURN_DIFF;
+	}//if(pcoder_evt_now)
+    }//else if(HAL_TIM_ACTIVE_CHANNEL_4 == htim->Channel)
   }
 }
 
