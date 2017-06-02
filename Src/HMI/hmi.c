@@ -66,12 +66,14 @@ void hmi_init(void)
  */
 void hmi_main(void)
 {
-#ifdef USE_UART3_485
     if(UART_HMI.Status & RX_CPLT)
     {
 	uint8_t cnt;
 	cnt = UART_HMI.Status &= 0X7F;
 	UART_HMI.Status = 0;
+	if(2 < cnt)
+	    SEGGER_RTT_printf(0,"\r\nCRC:%4x",
+			      crc_calculate(UART_HMI.pRxBuffer_out,cnt-2));
         SEGGER_RTT_printf(0,"\r\n%3d:",cnt);
 	while(cnt--)//还有没打印完的数据
 	{
@@ -81,7 +83,6 @@ void hmi_main(void)
 		UART_HMI.pRxBuffer_out = UART_HMI.RxBuffer;
 	}
     }
-#endif //USE_UART3_485
 }
 
 #ifdef  USE_UART3_485

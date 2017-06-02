@@ -89,6 +89,8 @@ C_SOURCE_FILES += $(abspath ../Src/Coder/coder.c)  #电磁阀控制函数
 C_SOURCE_FILES += $(abspath ../Src/HMI/cmd.c)  #命令行交互界面函数 
 #sources for HMI #提供人机交互界面的函数源文件
 C_SOURCE_FILES += $(abspath ../Src/HMI/hmi.c)  #命令行交互界面函数 
+#sources for CRC #提供CRC校验的函数源文件
+C_SOURCE_FILES += $(abspath ../Src/HMI/crc.c)  #CRC校验计算函数 
 
 #includes common to all targets
 INC_PATHS  = -I$(abspath $(DRIVER_PATH)/CMSIS/Include) #包含CMSIS提供的头文件

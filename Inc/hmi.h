@@ -3,6 +3,7 @@
 
 #include "stm32f1xx_hal.h"
 #include "SEGGER_RTT.h"
+#include "crc.h"
 
 #define  USE_UART3_485
 //#define  USE_UART1_232
@@ -28,6 +29,9 @@ typedef struct UART_HMI_s
     uint8_t * pRxBuffer_in;//FIFO缓冲中第一个未读数据的指针
     uint8_t * pRxBuffer_out;//FIFO缓冲中第一个可存数据的指针
 } UART_HMI_t;
+
+#define OPCODE_OFFSET  1
+#define ADDRESS_OFFSET 2
 
 #if defined(USE_UART3_485)
 #define USART_HMI  USART3

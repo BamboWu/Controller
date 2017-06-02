@@ -90,13 +90,13 @@ void coder_Z(void)
   if(pcoder_evt_first)//设置第一个事件点
   {
 	Tim8Handle.Instance->CCR3 = pcoder_evt_first->coder_count;
-	SEGGER_RTT_printf(0,"\r\n[coder_Z]first count:%4d\r\n",pcoder_evt_first->coder_count);
+	//SEGGER_RTT_printf(0,"\r\n[coder_Z]first count:%4d\r\n",pcoder_evt_first->coder_count);
       	if(pcoder_evt_first->next)//第一个事件点不是最后一个事件点
 	    Tim8Handle.Instance->CCR4 = pcoder_evt_first->prev->coder_count - EVT_RETURN_DIFF;//为反转设置最后一个事件点
-	SEGGER_RTT_printf(0,"\r\n[coder_Z]last count:%4d\r\n",pcoder_evt_first->prev->coder_count);
+	//SEGGER_RTT_printf(0,"\r\n[coder_Z]last count:%4d\r\n",pcoder_evt_first->prev->coder_count);
   }
   pcoder_evt_now = pcoder_evt_first;
-  SEGGER_RTT_printf(0,"\r\n[coder_Z]pcoder_evt_now:%x\r\n",pcoder_evt_now);
+  //SEGGER_RTT_printf(0,"\r\n[coder_Z]pcoder_evt_now:%x\r\n",pcoder_evt_now);
   HAL_TIM_OC_Start_IT(&Tim8Handle,TIM_CHANNEL_3);
   HAL_TIM_OC_Start_IT(&Tim8Handle,TIM_CHANNEL_4);
   HAL_TIM_Encoder_Start(&Tim8Handle,TIM_CHANNEL_12);

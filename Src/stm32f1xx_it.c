@@ -261,10 +261,10 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
     extern coder_evt_t * pcoder_evt_first;
     extern coder_evt_t * pcoder_evt_now;
 
-    SEGGER_RTT_printf(0,"\r\n[TIM8]OC=%4d\r\n",htim->Instance->CNT);
+    //SEGGER_RTT_printf(0,"\r\n[TIM8]OC=%4d\r\n",htim->Instance->CNT);
     if(HAL_TIM_ACTIVE_CHANNEL_3 == htim->Channel)//正向触发
     {
-	SEGGER_RTT_printf(0,"\r\n[TIM8]Channel3\r\n");
+	//SEGGER_RTT_printf(0,"\r\n[TIM8]Channel3\r\n");
 	if(pcoder_evt_now)
     	{
 	    switch(pcoder_evt_now->evt_type)
@@ -315,7 +315,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
     }//if(HAL_TIM_ACTIVE_CHANNEL_3 == htim->Channel)
     else if(HAL_TIM_ACTIVE_CHANNEL_4 == htim->Channel)
     {
-	SEGGER_RTT_printf(0,"\r\n[TIM8]Channel4\r\n");
+	//SEGGER_RTT_printf(0,"\r\n[TIM8]Channel4\r\n");
 	if(pcoder_evt_now)
     	{
 	    pcoder_evt_now = pcoder_evt_now -> prev;//向前移一个事件
