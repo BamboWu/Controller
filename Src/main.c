@@ -100,8 +100,8 @@ int main(void)
     //HAL_Delay(100);
     //SEGGER_RTT_printf(0,"\r\n[loop%3d]\r\n",i++);
     cmd_main();
-    //hmi_main();
-    hmi_test_resp();
+    hmi_main();
+    //hmi_test_resp();
     //hmi_test_485();
   }  //while(1)
 }  //main()

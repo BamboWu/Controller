@@ -174,6 +174,9 @@ void hmi_test_resp(void)
     UART_HMI.TxBuffer[5] = (crc & 0xFF00) >> 8;
     UART_HMI.TxBuffer[6] = (crc & 0X00FF);
 
+    if(UART_HMI.Status & RX_CPLT)
+    {
+	UART_HMI.Status = 0;
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);  //PB12输出高电平，使能写
 #endif
@@ -182,6 +185,7 @@ void hmi_test_resp(void)
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12输出低电平，使能读
 #endif
+    }
 }
 
 #ifdef  USE_UART3_485
