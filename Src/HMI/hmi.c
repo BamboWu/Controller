@@ -66,23 +66,122 @@ void hmi_init(void)
  */
 void hmi_main(void)
 {
+    uint8_t cnt;
+    uint16_t crc_received;
+    uint16_t addr,num;
+
     if(UART_HMI.Status & RX_CPLT)
     {
-	uint8_t cnt;
 	cnt = UART_HMI.Status &= 0X7F;
 	UART_HMI.Status = 0;
-	if(2 < cnt)
-	    SEGGER_RTT_printf(0,"\r\nCRC:%4x",
-			      crc_calculate(UART_HMI.pRxBuffer_out,cnt-2));
-        SEGGER_RTT_printf(0,"\r\n%3d:",cnt);
-	while(cnt--)//还有没打印完的数据
+	if(2 > cnt)//接收不完整
 	{
-	    SEGGER_RTT_printf(0,"%3x",*UART_HMI.pRxBuffer_out++);
-	    if(UART_HMI.RxBuffer <= (UART_HMI.pRxBuffer_out-RXBUFFER_SIZE))
-		//超出Buffer范围
-		UART_HMI.pRxBuffer_out = UART_HMI.RxBuffer;
+	    UART_HMI.pRxBuffer_out += cnt;
+	    if(UART_HMI.RxBuffer <= UART_HMI.pRxBuffer_out-RXBUFFER_SIZE)
+		    UART_HMI.pRxBuffer_out -= RXBUFFER_SIZE;
+	    return;
+	}
+
+	crc_received = UART_HMI.pRxBuffer_out[cnt-2] << 8 | UART_HMI.pRxBuffer_out[cnt-1];//由于STM32为小端而modbus是大端，所以要自己拼合
+
+	if(crc_received != crc_calculate(UART_HMI.pRxBuffer_out,cnt-2))//校验错
+	{
+	    UART_HMI.pRxBuffer_out += cnt;
+	    if(UART_HMI.RxBuffer <= UART_HMI.pRxBuffer_out-RXBUFFER_SIZE)
+		    UART_HMI.pRxBuffer_out -= RXBUFFER_SIZE;
+	    return;
+	}
+
+	UART_HMI.TxBuffer[0] = UART_HMI.pRxBuffer_out[0];//复制slave地址
+	UART_HMI.pRxBuffer_out++;//第一个地址不看
+	cnt--;
+
+	UART_HMI.TxBuffer[1] = UART_HMI.pRxBuffer_out[0];//复制操作码
+	switch(*UART_HMI.pRxBuffer_out)//查看Function Code
+	{
+            case MODBUS_RDREGS: addr = UART_HMI.pRxBuffer_out[1] << 8 |
+				       UART_HMI.pRxBuffer_out[2];
+     				num  = UART_HMI.pRxBuffer_out[3] << 8 |
+				       UART_HMI.pRxBuffer_out[4];
+				UART_HMI.pRxBuffer_out += 5;
+     				cnt -= 5;
+     				hmi_r(addr,num);
+     				UART_HMI.pRxBuffer_out += cnt;
+     				break;
+	    default: 	SEGGER_RTT_printf(0,"\r\n[hmi_main]:");
+			while(cnt--)//还有没打印完的数据
+			{
+		    	   SEGGER_RTT_printf(0,"%3x",*UART_HMI.pRxBuffer_out++);
+			   if(UART_HMI.RxBuffer <= (UART_HMI.pRxBuffer_out-RXBUFFER_SIZE))		//超出Buffer范围
+				   UART_HMI.pRxBuffer_out = UART_HMI.RxBuffer;
+			}
+			SEGGER_RTT_printf(0,"\r\n");
 	}
     }
+}
+
+/**@brief  处理modbus读操作的函数
+ *
+ * @param  addr   起始地址
+ * @param  num    寄存器数
+ */
+void hmi_r(uint16_t addr, uint16_t num)
+{
+    uint8_t index = 3;
+    uint16_t crc;
+    HAL_StatusTypeDef status;
+    extern  valve_param_t valve_params[];
+
+    SEGGER_RTT_printf(0,"\r\n[hmi_r]addr=%4x,num=%4x\r\n",addr,num);
+    UART_HMI.TxBuffer[2] = num << 1;//字节数是寄存器数的两倍
+
+    while(num--)
+    {
+	UART_HMI.TxBuffer[index++] = (valve_params[1].high_duration&0xFF00)>>8;
+	UART_HMI.TxBuffer[index++] = (valve_params[1].high_duration&0x00FF);
+    }
+
+    crc = crc_calculate(UART_HMI.TxBuffer,index);
+
+    UART_HMI.TxBuffer[index++] = (crc & 0xFF00) >> 8;
+    UART_HMI.TxBuffer[index++] = (crc & 0x00FF);
+
+#ifdef  USE_UART3_485
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);//PB12置高电平，使能写
+#endif
+    status = HAL_UART_Transmit(&UART_HMI.Handle,UART_HMI.TxBuffer,index,5000);
+    SEGGER_RTT_printf(0,"\r\n[hmi_r]status:%x\r\n",status);
+#ifdef  USE_UART3_485
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12置低电平，使能读
+#endif
+
+}
+
+/**@brief  modbus响应调试程序
+ *
+ */
+void hmi_test_resp(void)
+{
+    uint16_t crc;
+    extern  valve_param_t valve_params[];
+
+    UART_HMI.TxBuffer[0] = 0x01;
+    UART_HMI.TxBuffer[1] = 0x03;
+    UART_HMI.TxBuffer[2] = 0x02;
+    UART_HMI.TxBuffer[3] = (valve_params[1].high_duration&0xFF00)>>8;
+    UART_HMI.TxBuffer[4] = (valve_params[1].high_duration&0x00FF);
+    crc = crc_calculate(UART_HMI.TxBuffer,5);
+    UART_HMI.TxBuffer[5] = (crc & 0xFF00) >> 8;
+    UART_HMI.TxBuffer[6] = (crc & 0X00FF);
+
+#ifdef  USE_UART3_485
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);  //PB12输出高电平，使能写
+#endif
+    SEGGER_RTT_printf(0,"\r\n[hmi_test_resp]%x\r\n",
+		  HAL_UART_Transmit(&UART_HMI.Handle,UART_HMI.TxBuffer,7,5000));
+#ifdef  USE_UART3_485
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12输出低电平，使能读
+#endif
 }
 
 #ifdef  USE_UART3_485

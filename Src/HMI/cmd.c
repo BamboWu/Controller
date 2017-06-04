@@ -11,7 +11,7 @@ static   uint8_t index = 0;
  */
 void cmd_h(void)
 {
-    SEGGER_RTT_printf(0,"\r\nAfter \"[loop xx]\" is printed, press:\r\n");
+    SEGGER_RTT_printf(0,"\r\nWhen L6 is blinking, press:\r\n");
     SEGGER_RTT_printf(0,"\r\nh\tprint this help information.\r\n");
     SEGGER_RTT_printf(0,    "l\tload valve params.\r\n");
     SEGGER_RTT_printf(0,    "s\tstore valve params.\r\n");
@@ -322,7 +322,8 @@ void cmd_d(void)
  */
 void cmd_main(void)
 {
-    key = SEGGER_RTT_WaitKey();  //等待输入
+    //key = SEGGER_RTT_WaitKey();  //等待输入
+    key = SEGGER_RTT_GetKey();     //获取输入，非阻塞式进入cmd_main
 
     switch(key)
     {

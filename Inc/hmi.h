@@ -4,6 +4,7 @@
 #include "stm32f1xx_hal.h"
 #include "SEGGER_RTT.h"
 #include "crc.h"
+#include "valve.h"
 
 #define  USE_UART3_485
 //#define  USE_UART1_232
@@ -30,8 +31,9 @@ typedef struct UART_HMI_s
     uint8_t * pRxBuffer_out;//FIFO缓冲中第一个可存数据的指针
 } UART_HMI_t;
 
-#define OPCODE_OFFSET  1
-#define ADDRESS_OFFSET 2
+#define MODBUS_RDREGS  0X03  //读寄存器的操作码
+#define MODBUS_WRREG   0X06  //写寄存器的操作码
+#define MODBUS_WRREGS  0X10  //写多个寄存器的操作码
 
 #if defined(USE_UART3_485)
 #define USART_HMI  USART3
@@ -41,6 +43,9 @@ typedef struct UART_HMI_s
 
 void hmi_init(void);
 void hmi_main(void);
+void hmi_r(uint16_t addr, uint16_t num);
+void hmi_w(uint16_t addr, uint16_t num);
+void hmi_test_resp(void);
 
 #ifdef USE_UART3_485
 void hmi_test_485(void);
