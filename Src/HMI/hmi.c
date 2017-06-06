@@ -153,6 +153,7 @@ void hmi_main(void)
      				break;
             case MODBUS_WRREG : hmi_rxbuf_out(UART_HMI.pRxBuffer_out,2,&addr);
 				UART_HMI_PRXBUF_(2);
+				cnt -= 2;
 				hmi_w(addr,1);
 				UART_HMI_PRXBUF_(cnt);
      				break;
@@ -183,12 +184,10 @@ void hmi_main(void)
 void hmi_r(uint16_t addr, uint16_t num)
 {
     uint8_t index = 3;
-    uint8_t i = 0;
     uint16_t crc;
     HAL_StatusTypeDef status;
     extern  valve_param_t valve_params[];
 
-    SEGGER_RTT_printf(0,"\r\n[hmi_r]addr=%4x,num=%4x\r\n",addr,num);
     UART_HMI.TxBuffer[2] = num << 1;//字节数是寄存器数的两倍
 
     while(num--)
@@ -198,12 +197,6 @@ void hmi_r(uint16_t addr, uint16_t num)
     }
 
     crc = crc_calculate(UART_HMI.TxBuffer,index);
-    SEGGER_RTT_printf(0,"\r\n[hmi_r]");
-    while(i != index)
-    {
-	SEGGER_RTT_printf(0,"%3x",UART_HMI.TxBuffer[i++]);
-    }
-    SEGGER_RTT_printf(0,"%5x\r\n",crc);
 
     UART_HMI.TxBuffer[index++] = (crc & 0xFF00) >> 8;
     UART_HMI.TxBuffer[index++] = (crc & 0x00FF);
@@ -212,7 +205,7 @@ void hmi_r(uint16_t addr, uint16_t num)
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);//PB12置高电平，使能写
 #endif
     status = HAL_UART_Transmit(&UART_HMI.Handle,UART_HMI.TxBuffer,index,5000);
-    SEGGER_RTT_printf(0,"\r\n[hmi_r]status:%x\r\n",status);
+    SEGGER_RTT_printf(0,"\r\n[hmi_r]A%4x, N%4x, S%x\r\n",addr,num,status);
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12置低电平，使能读
 #endif
@@ -226,18 +219,30 @@ void hmi_r(uint16_t addr, uint16_t num)
  */
 void hmi_w(uint16_t addr, uint16_t num)
 {
-    uint8_t index = 3;
+    uint8_t index = 2;
+    uint8_t i = 0;
     uint16_t crc;
+    uint16_t data_tmp;
     HAL_StatusTypeDef status;
     extern  valve_param_t valve_params[];
 
     SEGGER_RTT_printf(0,"\r\n[hmi_w]addr=%4x,num=%4x\r\n",addr,num);
+    UART_HMI.TxBuffer[index++] = (addr & 0xFF00) >> 8;
+    UART_HMI.TxBuffer[index++] = (addr & 0x00FF);
 
-    if(MODBUS_WRREGS == UART_HMI.TxBuffer[1])//
+    if(MODBUS_WRREG == UART_HMI.TxBuffer[1])//0X06 Preset Single Register
     {
+	hmi_rxbuf_out(UART_HMI.pRxBuffer_out,2,&data_tmp);
+	valve_params[2].high_duration = data_tmp;
+	data_tmp = valve_params[2].high_duration;
+	UART_HMI.TxBuffer[index++] = (data_tmp & 0xFF00) >> 8;
+	UART_HMI.TxBuffer[index++] = (data_tmp & 0x00FF);
+	
     }
-    else
+    else if(MODBUS_WRREGS == UART_HMI.TxBuffer[1])//0X10 Preset Multiple Regs
     {
+	UART_HMI.TxBuffer[index++] = (num & 0xFF00) >> 8;
+	UART_HMI.TxBuffer[index++] = (num & 0x00FF);
     }
 
     crc = crc_calculate(UART_HMI.TxBuffer,index);
@@ -245,11 +250,18 @@ void hmi_w(uint16_t addr, uint16_t num)
     UART_HMI.TxBuffer[index++] = (crc & 0xFF00) >> 8;
     UART_HMI.TxBuffer[index++] = (crc & 0x00FF);
 
+    SEGGER_RTT_printf(0,"\r\n[hmi_w]:");
+    for(i=0;i<index;i++)
+    {
+	SEGGER_RTT_printf(0,"%3x",UART_HMI.TxBuffer[i]);
+    }
+    SEGGER_RTT_printf(0,"\r\n");
+
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);//PB12置高电平，使能写
 #endif
     status = HAL_UART_Transmit(&UART_HMI.Handle,UART_HMI.TxBuffer,index,5000);
-    SEGGER_RTT_printf(0,"\r\n[hmi_r]status:%x\r\n",status);
+    SEGGER_RTT_printf(0,"\r\n[hmi_w]status:%x\r\n",status);
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12置低电平，使能读
 #endif
