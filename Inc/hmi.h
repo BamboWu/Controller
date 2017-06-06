@@ -41,6 +41,13 @@ typedef struct UART_HMI_s
 #define USART_HMI  USART1
 #endif
 
+//接收缓冲输出指针移位的函数块宏定义
+#define UART_HMI_PRXBUF_(cnt) {\
+UART_HMI.pRxBuffer_out-=cnt;\
+if(UART_HMI.RxBuffer>UART_HMI.pRxBuffer_out)\
+UART_HMI.pRxBuffer_out+=RXBUFFER_SIZE;\
+}
+
 void hmi_init(void);
 void hmi_main(void);
 void hmi_r(uint16_t addr, uint16_t num);

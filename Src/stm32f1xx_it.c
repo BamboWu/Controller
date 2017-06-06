@@ -473,10 +473,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 		UART_HMI.Status = 0;
 	  }
 	  UART_HMI.Status++;
-	  UART_HMI.pRxBuffer_in++;
-	  if(UART_HMI.RxBuffer <= (UART_HMI.pRxBuffer_in-RXBUFFER_SIZE))
+	  UART_HMI.pRxBuffer_in--;
+	  if(UART_HMI.RxBuffer > UART_HMI.pRxBuffer_in)
 		//超出Buffer范围了
-		UART_HMI.pRxBuffer_in = UART_HMI.RxBuffer;
+		UART_HMI.pRxBuffer_in = UART_HMI.RxBuffer + RXBUFFER_SIZE - 1;
 
 	  HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
   }

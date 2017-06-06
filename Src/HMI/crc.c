@@ -61,9 +61,17 @@ uint16_t crc_calculate(uint8_t* pdata, uint8_t len)
     uint8_t Hi = 0xFF;
     uint8_t Lo = 0xFF;
     uint8_t idx;
+    extern UART_HMI_t UART_HMI;
     while(len--)
     {
-	idx = Hi^*pdata++;
+	if(UART_HMI.RxBuffer > pdata || pdata >= (UART_HMI.RxBuffer+RXBUFFER_SIZE))//pdata不落在RxBuffer中
+	    idx = Hi^*pdata++;
+	else//pdata落在RxBuffer中
+	{
+	    idx = Hi^*pdata--;
+    	    if(UART_HMI.RxBuffer > pdata)
+		pdata += RXBUFFER_SIZE;
+	}
 	Hi  = Lo^CRCHiTable[idx];
 	Lo  = CRCLoTable[idx];
     }
