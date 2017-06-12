@@ -5,6 +5,7 @@
 #include "SEGGER_RTT.h"
 #include "crc.h"
 #include "valve.h"
+#include "coder.h"
 
 #define  USE_UART3_485
 //#define  USE_UART1_232
@@ -34,6 +35,20 @@ typedef struct UART_HMI_s
 #define MODBUS_RDREGS  0X03  //读寄存器的操作码
 #define MODBUS_WRREG   0X06  //写寄存器的操作码
 #define MODBUS_WRREGS  0X10  //写多个寄存器的操作码
+
+#define MODBUS_SYS_MSK 0XF000//特殊用途地址掩码
+#define MODBUS_CHA_MSK 0X0F00//通道索引掩码
+#define MODBUS_TYP_MSK 0X0030//参数类型掩码
+#define MODBUS_IDX_MSK 0X000F//开关参数对索引掩码
+
+#define MODBUS_SYS_HOUR  0X2000//运行小时数记录地址
+#define MODBUS_SYS_MIN   0X1000//运行分钟数记录地址
+#define MODBUS_SYS_SAVE  0X3000//保存参数到flash
+#define MODBUS_SYS_APPLY 0X4000//应用当前参数
+#define MODBUS_TYP_OFF   0X0000//关闭角参数类型代码
+#define MODBUS_TYP_ON    0X0010//开启角参数类型代码
+#define MODBUS_TYP_VALID 0X0020//开关对有效值参数类型代码
+#define MODBUS_TYP_HIGH  0X0030//高压时间参数类型代码
 
 #if defined(USE_UART3_485)
 #define USART_HMI  USART3

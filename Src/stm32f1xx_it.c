@@ -61,6 +61,9 @@ extern UART_HMI_t        UART_HMI;
 
 extern valve_param_t valve_params[13];
 uint16_t high_left[13] = {0};              //高压剩余ms数，第0元素弃用
+uint8_t hsecond = 0;
+uint8_t minute = 0;
+uint8_t hour = 0;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -213,9 +216,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   if (&Tim7Handle == htim)
   {
-    static char hsecond = 0;
-    static char minute = 0;
-    static char hour = 0;
+    //static char hsecond = 0;
+    //static char minute = 0;
+    //static char hour = 0;
     HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);//翻转PA15电平，使L6交替亮灭
     if(hsecond < 119)
 	hsecond++;
@@ -459,6 +462,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
   //SEGGER_RTT_printf(0,"\r\n[RxCpltCallback]\r\n");
   if(USART_HMI == UartHandle->Instance)
   {
+	  if(RX_CPLT & UART_HMI.Status)
+	  {
+		HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
+		return;//还有数据未来得及处理
+	  }
 	  /* Set transmission flag: receive complete */
 	  if(UART_HMI.Status & 0x7F)//不是第一个字节
 	  {
@@ -473,10 +481,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 		UART_HMI.Status = 0;
 	  }
 	  UART_HMI.Status++;
-	  UART_HMI.pRxBuffer_in--;
-	  if(UART_HMI.RxBuffer > UART_HMI.pRxBuffer_in)
+	  //UART_HMI.pRxBuffer_in--;
+	  if(UART_HMI.RxBuffer == UART_HMI.pRxBuffer_in)
 		//超出Buffer范围了
 		UART_HMI.pRxBuffer_in = UART_HMI.RxBuffer + RXBUFFER_SIZE - 1;
+	  else
+		UART_HMI.pRxBuffer_in--;
 
 	  HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
   }

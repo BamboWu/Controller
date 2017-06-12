@@ -109,6 +109,7 @@ void hmi_main(void)
     uint16_t crc_received;
     uint16_t addr,num;
 
+    //SEGGER_RTT_printf(0,"\r\n0X%2x\r\n",UART_HMI.Status);
     if(UART_HMI.Status & RX_CPLT)
     {
 	cnt = UART_HMI.Status &= 0X7F;
@@ -180,20 +181,56 @@ void hmi_main(void)
  *
  * @param  addr   起始地址
  * @param  num    寄存器数
+ *
+ * @notice 当访问开关参数时，响应的是角度值
+ * 格式仍用16位正整数，但数值最后一位实是用于表示一位小数。
+ * 例如0X0169转成十进制为361，但表示36.1度。
  */
 void hmi_r(uint16_t addr, uint16_t num)
 {
     uint8_t index = 3;
-    uint16_t crc;
+    uint8_t channel;
+    uint16_t crc,data;
     HAL_StatusTypeDef status;
     extern  valve_param_t valve_params[];
+    extern  uint8_t minute;
+    extern  uint8_t hour;
+    extern  uint16_t coder_division;
 
     UART_HMI.TxBuffer[2] = num << 1;//字节数是寄存器数的两倍
 
     while(num--)
     {
-	UART_HMI.TxBuffer[index++] = (valve_params[1].high_duration&0xFF00)>>8;
-	UART_HMI.TxBuffer[index++] = (valve_params[1].high_duration&0x00FF);
+	if(MODBUS_SYS_MSK & addr)//与特殊用途地址通信
+    	{
+	    switch(addr)
+    	    {
+		case MODBUS_SYS_HOUR : data = hour;
+				       break;
+		case MODBUS_SYS_MIN  : data = minute;
+				       break;
+		default  : data = 0;   break;
+	    }
+    	}
+	else//与参数地址通信
+    	{
+	    channel = (MODBUS_CHA_MSK & addr) >> 8;
+	    switch(MODBUS_TYP_MSK & addr)
+	    {
+	        case MODBUS_TYP_ON   :data =(valve_params[channel].on_offs[addr & MODBUS_IDX_MSK][0] * 3600 + (coder_division>>1)) / coder_division;
+				      break;
+		case MODBUS_TYP_OFF  :data =(valve_params[channel].on_offs[addr & MODBUS_IDX_MSK][1] * 3600 + (coder_division>>1)) / coder_division;
+				      break;
+		case MODBUS_TYP_VALID:data =valve_params[channel].on_offs_mask;
+				      break;
+		case MODBUS_TYP_HIGH :data =valve_params[channel].high_duration;
+				      break;
+		default : data = 0;   break;
+	    }
+	}
+	UART_HMI.TxBuffer[index++] = (data & 0xFF00) >> 8;
+	UART_HMI.TxBuffer[index++] = (data & 0x00FF);
+	addr++;
     }
 
     crc = crc_calculate(UART_HMI.TxBuffer,index);
@@ -205,7 +242,8 @@ void hmi_r(uint16_t addr, uint16_t num)
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);//PB12置高电平，使能写
 #endif
     status = HAL_UART_Transmit(&UART_HMI.Handle,UART_HMI.TxBuffer,index,5000);
-    SEGGER_RTT_printf(0,"\r\n[hmi_r]A%4x, N%4x, S%x\r\n",addr,num,status);
+    status = status;
+    //SEGGER_RTT_printf(0,"\r\n[hmi_r]A%4x, N%4x, S%x\r\n",addr-1,UART_HMI.TxBuffer[2]>>1,status);
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12置低电平，使能读
 #endif
@@ -220,11 +258,13 @@ void hmi_r(uint16_t addr, uint16_t num)
 void hmi_w(uint16_t addr, uint16_t num)
 {
     uint8_t index = 2;
-    uint8_t i = 0;
+    uint8_t channel;
+    uint8_t * pRxBuf_out = UART_HMI.pRxBuffer_out;
     uint16_t crc;
     uint16_t data_tmp;
     HAL_StatusTypeDef status;
     extern  valve_param_t valve_params[];
+    extern  uint16_t coder_division;
 
     SEGGER_RTT_printf(0,"\r\n[hmi_w]addr=%4x,num=%4x\r\n",addr,num);
     UART_HMI.TxBuffer[index++] = (addr & 0xFF00) >> 8;
@@ -232,17 +272,62 @@ void hmi_w(uint16_t addr, uint16_t num)
 
     if(MODBUS_WRREG == UART_HMI.TxBuffer[1])//0X06 Preset Single Register
     {
-	hmi_rxbuf_out(UART_HMI.pRxBuffer_out,2,&data_tmp);
-	valve_params[2].high_duration = data_tmp;
-	data_tmp = valve_params[2].high_duration;
+	if(MODBUS_SYS_MSK & addr)//与特殊地址通信
+	{
+	    switch(addr)
+	    {
+		case MODBUS_SYS_SAVE  : valve_params_store();
+					break;
+		case MODBUS_SYS_APPLY : coder_evt_gather();
+					break;
+		default :               break;
+	    }
+	    data_tmp = 0;
+	}
+	else
+	{
+	    channel = (MODBUS_CHA_MSK & addr) >> 8;
+    	    hmi_rxbuf_out(pRxBuf_out,2,&data_tmp);
+    	    switch(MODBUS_TYP_MSK & addr)
+    	    {
+	        case MODBUS_TYP_ON   : valve_params[channel].on_offs[addr&MODBUS_IDX_MSK][0] = (data_tmp * coder_division + 1800) / 3600;
+    				       break;
+    		case MODBUS_TYP_OFF  : valve_params[channel].on_offs[addr&MODBUS_IDX_MSK][1] = (data_tmp * coder_division + 1800) / 3600;
+    				       break;
+    		case MODBUS_TYP_VALID: valve_params[channel].on_offs_mask=data_tmp;
+    				       break;
+    		case MODBUS_TYP_HIGH : valve_params[channel].high_duration=data_tmp;
+    				       break;
+    		default:               break;
+    	    }
+    	    //valve_params[2].high_duration = data_tmp;
+	    //data_tmp = valve_params[2].high_duration;
+	}
 	UART_HMI.TxBuffer[index++] = (data_tmp & 0xFF00) >> 8;
 	UART_HMI.TxBuffer[index++] = (data_tmp & 0x00FF);
-	
     }
     else if(MODBUS_WRREGS == UART_HMI.TxBuffer[1])//0X10 Preset Multiple Regs
     {
+	while(num--)
+	{
+	    channel = (MODBUS_CHA_MSK & addr) >> 8;
+    	    hmi_rxbuf_out(pRxBuf_out,2,&data_tmp);
+    	    switch(MODBUS_TYP_MSK & addr)
+    	    {
+	        case MODBUS_TYP_ON   : valve_params[channel].on_offs[addr&MODBUS_IDX_MSK][0] = data_tmp * coder_division / 3600;
+				       break;
+    		case MODBUS_TYP_OFF  : valve_params[channel].on_offs[addr&MODBUS_IDX_MSK][1] = data_tmp * coder_division / 3600;
+				       break;
+    		case MODBUS_TYP_VALID: valve_params[channel].on_offs_mask=data_tmp;
+				       break;
+		case MODBUS_TYP_HIGH : valve_params[channel].high_duration=data_tmp;
+				       break;
+    		default:               break;
+	    }
+	    pRxBuf_out += 2;
+	}
 	UART_HMI.TxBuffer[index++] = (num & 0xFF00) >> 8;
-	UART_HMI.TxBuffer[index++] = (num & 0x00FF);
+    	UART_HMI.TxBuffer[index++] = (num & 0x00FF);
     }
 
     crc = crc_calculate(UART_HMI.TxBuffer,index);
@@ -250,12 +335,12 @@ void hmi_w(uint16_t addr, uint16_t num)
     UART_HMI.TxBuffer[index++] = (crc & 0xFF00) >> 8;
     UART_HMI.TxBuffer[index++] = (crc & 0x00FF);
 
-    SEGGER_RTT_printf(0,"\r\n[hmi_w]:");
-    for(i=0;i<index;i++)
-    {
-	SEGGER_RTT_printf(0,"%3x",UART_HMI.TxBuffer[i]);
-    }
-    SEGGER_RTT_printf(0,"\r\n");
+    //SEGGER_RTT_printf(0,"\r\n[hmi_w]:");
+    //for(i=0;i<index;i++)
+    //{
+    //    SEGGER_RTT_printf(0,"%3x",UART_HMI.TxBuffer[i]);
+    //}
+    //SEGGER_RTT_printf(0,"\r\n");
 
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);//PB12置高电平，使能写
@@ -266,6 +351,7 @@ void hmi_w(uint16_t addr, uint16_t num)
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12置低电平，使能读
 #endif
 
+    //coder_evt_gather();
 }
 /**@brief  modbus响应调试程序
  *

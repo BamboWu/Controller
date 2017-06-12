@@ -229,9 +229,9 @@ void coder_evt_gather(void)
   //organize a free coder events chain
   for(i=0;i<CODER_EVT_MAX;i++)
   {
-      coder_evts[i].coder_count = 0;
-      coder_evts[i].evt_channel = 0;
-      coder_evts[i].evt_type    = channel_keep;
+      //coder_evts[i].coder_count = 0;
+      //coder_evts[i].evt_channel = 0;
+      //coder_evts[i].evt_type    = channel_keep;
       coder_evts[i].prev        = &coder_evts[i-1];
       coder_evts[i].next        = &coder_evts[i+1];
   }
@@ -243,6 +243,7 @@ void coder_evt_gather(void)
   for(channel=1;channel<=12;channel++)
   {
       evt.evt_channel = channel;
+      SEGGER_RTT_printf(0,"\r\n[gather]chan=%x\r\n",evt.evt_channel);
       for(i=0;i<ON_OFF_MAX;i++)
       {
 	  if(valve_params[channel].on_offs_mask & (0x0001<<i))//该对开关参数有效
@@ -250,12 +251,14 @@ void coder_evt_gather(void)
 	      evt.evt_type = channel_on;
 	      evt.coder_count = valve_params[channel].on_offs[i][0];
 	      coder_evt_insert(evt);
+	      SEGGER_RTT_printf(0," [%x ",i);
 	      //evt.evt_type = channel_off_H;//高压关闭不依赖于编码器
 	      //evt.coder_count += valve_params[channel].high_duration;
 	      //coder_evt_insert(evt);//改用定时器来关闭
 	      evt.evt_type = channel_off_L;
 	      evt.coder_count = valve_params[channel].on_offs[i][1];
 	      coder_evt_insert(evt);
+	      SEGGER_RTT_printf(0," %x] ",i);
 	  }//if on_offs_mask & (0x0001<<i)
       }//for i=0:ON_OFF_MAX-1
   }//for channel=1:12
