@@ -4,6 +4,8 @@ static uint32_t m_valve_state = 0;   //内部记录电磁阀通路输出状态�
 
 valve_param_t valve_params[13] = {0};//记录电磁阀通路通断参数的变量，第0元素弃用
 
+uint8_t valve_params_flash = 0; //标记参数在flash中的状态的变量
+
 /**@brief 用于设置电磁阀输出的函数
  *
  * @param[in] bank      指定根据374芯片划分的区间，0对应芯片U14，1为U58，2是U912
@@ -191,6 +193,7 @@ void valve_params_load(void)
 
     if(*(uint32_t*)FLASH_ADDR != DATA_MARK)//数据有损
     {
+	valve_params_flash = 0;
 	return;//退出
     }
     //遍历填入12个通道参数
@@ -214,6 +217,7 @@ void valve_params_load(void)
 	//给第channel通道的高压输出持续时间载入参数
 	flash_addr += 2; //
     }
+    valve_params_flash = 1;
 }
 
 /**@brief 用于将电磁阀通路参数存入flash的函数
@@ -224,20 +228,27 @@ void valve_params_store(void)
     uint32_t flash_addr,PAGEError;
     FLASH_EraseInitTypeDef EraseInitStruct;
     valve_param_t *p_valve_param;
+    extern UART_HMI_t        UART_HMI;
 
-    HAL_FLASH_Unlock();   //写flash之前，必须先解锁flash
-	    //SEGGER_RTT_printf(0,"[valve_params_store]flash unlock err\r\n");
+    if(HAL_OK != HAL_UART_DeInit(&UART_HMI.Handle))
+	SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART DeInit err\r\n");
+    if(HAL_OK != HAL_FLASH_Unlock())   //写flash之前，必须先解锁flash
+	SEGGER_RTT_printf(0,"[valve_params_store]flash unlock err\r\n");
     
     EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
     EraseInitStruct.PageAddress = FLASH_ADDR;
     EraseInitStruct.NbPages     = 1;
-    HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError);
+    if(HAL_OK != HAL_FLASHEx_Erase(&EraseInitStruct,&PAGEError))
+    {
+	valve_params_flash = 0;//flash中的参数损毁
+	SEGGER_RTT_printf(0,"\r\n[valve_params_store]Erase err\r\n");
+        if(HAL_OK != HAL_UART_Init(&UART_HMI.Handle))
+            SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART ReInit err\r\n");
+        HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
+	return;
+    }
     //存入新数据前，必先擦除原有数据所在的页
 	    //SEGGER_RTT_printf(0,"[valve_params_store]flash erase err\r\n");
-
-    HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
-		      FLASH_ADDR,
-		      DATA_MARK);//写一个标识，记录flash中数据确实存在
 
     //遍历存入12个通道参数
     for(channel=1,flash_addr=FLASH_ADDR+4;channel<=12;channel++)
@@ -246,29 +257,79 @@ void valve_params_store(void)
 	//为每个通道遍历存入(ON_OFF_MAX)对 输出关闭时间
 	for(on_off_id=0;on_off_id<ON_OFF_MAX;on_off_id++)
 	{
-	    HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
+	    if(HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
 			      flash_addr,
-			      p_valve_param->on_offs[on_off_id][0]);
+			      p_valve_param->on_offs[on_off_id][0]))
 	    //将第channel通道的第on_off_id对设定的开启时间参数存入
+	    {
+		valve_params_flash = 0;//flash中的参数损毁
+		SEGGER_RTT_printf(0,"\r\n[valve_params_store]valve_params[%x].on_offs[%x][0] err",channel,on_off_id);
+                if(HAL_UART_Init(&UART_HMI.Handle) != HAL_OK)
+                    SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART ReInit err\r\n");
+                HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
+		return;
+	    }
 	    flash_addr += 2;
-	    HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
+	    if(HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
 			      flash_addr,
-			      p_valve_param->on_offs[on_off_id][1]);
+			      p_valve_param->on_offs[on_off_id][1]))
 	    //将第channel通道的第on_off_id对设定的关闭时间参数存入
+	    {
+		valve_params_flash = 0;//flash中的参数损毁
+		SEGGER_RTT_printf(0,"\r\n[valve_params_store]valve_params[%x].on_offs[%x][1] err",channel,on_off_id);
+                if(HAL_UART_Init(&UART_HMI.Handle) != HAL_OK)
+                    SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART ReInit err\r\n");
+                HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
+		return;
+	    }
 	    flash_addr += 2;
 	}
-	HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
+	if(HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
 			  flash_addr,
-			  p_valve_param->on_offs_mask);
+			  p_valve_param->on_offs_mask))
+	{
+	    valve_params_flash = 0;//flash中的参数损毁
+	    SEGGER_RTT_printf(0,"\r\n[valve_params_store]valve_params[%x].on_offs_mask err",channel);
+            if(HAL_UART_Init(&UART_HMI.Handle) != HAL_OK)
+                SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART ReInit err\r\n");
+            HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
+	    return;
+	}
 	//将第channel通道的开关对数参数存入
 	flash_addr += 2; 
-	HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
+	if(HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,
 			  flash_addr,
-			  p_valve_param->high_duration);
+			  p_valve_param->high_duration))
 	//将第channel通道的高压输出持续时间参数存入
+	{
+	    valve_params_flash = 0;//flash中的参数损毁
+	    SEGGER_RTT_printf(0,"\r\n[valve_params_store]valve_params[%x].high_dration err",channel);
+            if(HAL_UART_Init(&UART_HMI.Handle) != HAL_OK)
+                SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART ReInit err\r\n");
+            HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
+	    return;
+	}
 	flash_addr += 2; 
     }
+
+    if(HAL_OK != HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+			           FLASH_ADDR,
+				   DATA_MARK))//写标识，记录flash中数据确实存在
+    {
+	valve_params_flash = 0;//flash中的参数损毁
+	SEGGER_RTT_printf(0,"\r\n[valve_params_store]DATA MARK err\r\n");
+        if(HAL_UART_Init(&UART_HMI.Handle) != HAL_OK)
+            SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART ReInit err\r\n");
+        HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
+	return;
+    }
+
     HAL_FLASH_Lock();                //写flash之后，必须再锁上flash
+    valve_params_flash = 1;          //flash中的参数完整
+
+    if(HAL_UART_Init(&UART_HMI.Handle) != HAL_OK)
+	SEGGER_RTT_printf(0,"\r\n[valve_params_store]UART ReInit err\r\n");
+    HAL_UART_Receive_IT(&UART_HMI.Handle,UART_HMI.pRxBuffer_in,1);
 }
 
 /**@brief 修改开关参数的函数

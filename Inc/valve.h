@@ -3,6 +3,7 @@
 
 #include "stm32f1xx_hal.h"
 #include "SEGGER_RTT.h"
+#include "hmi.h"
 
 #define BANK0 0X01
 #define BANK1 0X02

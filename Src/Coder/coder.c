@@ -110,7 +110,7 @@ void coder_evt_insert(coder_evt_t evt)
 
   if(NULL == pcoder_evt_free)//达到事件上限，无法插入新事件
 	  return;
-  else
+  else//pcoder_evt_free != NULL
   {
       pcoder_evt_free -> coder_count = evt.coder_count;
       pcoder_evt_free -> evt_channel = evt.evt_channel;
@@ -118,12 +118,12 @@ void coder_evt_insert(coder_evt_t evt)
 
       if(NULL == pcoder_evt_first)//一个事件都还没有
       {
-	  pcoder_evt_first = pcoder_evt_free;//记录及一个事件
+	  pcoder_evt_first = pcoder_evt_free;//记录第一个事件
 	  pcoder_evt_free  = pcoder_evt_free -> next;//挪用第一个空闲的evt结构体
 	  pcoder_evt_first -> prev = pcoder_evt_first;//自构成循环
 	  pcoder_evt_first -> next = NULL;
       }
-      else
+      else//pcoder_evt_first != NULL
       {
 	  while(evt.coder_count>=(p_coder_evt->coder_count))
 	  //新事件不早于当前比较事件
@@ -226,6 +226,7 @@ void coder_evt_gather(void)
   uint8_t channel,i;
   coder_evt_t evt;
 
+  pcoder_evt_now = NULL;//停止事件处理，以免encoder的中断造成死机
   //organize a free coder events chain
   for(i=0;i<CODER_EVT_MAX;i++)
   {
@@ -243,7 +244,7 @@ void coder_evt_gather(void)
   for(channel=1;channel<=12;channel++)
   {
       evt.evt_channel = channel;
-      SEGGER_RTT_printf(0,"\r\n[gather]chan=%x\r\n",evt.evt_channel);
+      //SEGGER_RTT_printf(0,"\r\n[gather]chan=%x\r\n",evt.evt_channel);
       for(i=0;i<ON_OFF_MAX;i++)
       {
 	  if(valve_params[channel].on_offs_mask & (0x0001<<i))//该对开关参数有效
@@ -251,15 +252,18 @@ void coder_evt_gather(void)
 	      evt.evt_type = channel_on;
 	      evt.coder_count = valve_params[channel].on_offs[i][0];
 	      coder_evt_insert(evt);
-	      SEGGER_RTT_printf(0," [%x ",i);
+	      //SEGGER_RTT_printf(0," [%x ",i);
 	      //evt.evt_type = channel_off_H;//高压关闭不依赖于编码器
 	      //evt.coder_count += valve_params[channel].high_duration;
 	      //coder_evt_insert(evt);//改用定时器来关闭
 	      evt.evt_type = channel_off_L;
 	      evt.coder_count = valve_params[channel].on_offs[i][1];
 	      coder_evt_insert(evt);
-	      SEGGER_RTT_printf(0," %x] ",i);
+	      //SEGGER_RTT_printf(0," %x] ",i);
 	  }//if on_offs_mask & (0x0001<<i)
       }//for i=0:ON_OFF_MAX-1
   }//for channel=1:12
+
+  pcoder_evt_now = pcoder_evt_first;//重启对事件的处理
+
 }

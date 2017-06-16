@@ -265,8 +265,9 @@ void hmi_w(uint16_t addr, uint16_t num)
     HAL_StatusTypeDef status;
     extern  valve_param_t valve_params[];
     extern  uint16_t coder_division;
+    extern  uint8_t  valve_params_flash;
 
-    SEGGER_RTT_printf(0,"\r\n[hmi_w]addr=%4x,num=%4x\r\n",addr,num);
+    //SEGGER_RTT_printf(0,"\r\n[hmi_w]addr=%4x,num=%4x\r\n",addr,num);
     UART_HMI.TxBuffer[index++] = (addr & 0xFF00) >> 8;
     UART_HMI.TxBuffer[index++] = (addr & 0x00FF);
 
@@ -276,13 +277,16 @@ void hmi_w(uint16_t addr, uint16_t num)
 	{
 	    switch(addr)
 	    {
-		case MODBUS_SYS_SAVE  : valve_params_store();
+		case MODBUS_SYS_SAVE  : 
+			                valve_params_store();
+					//SEGGER_RTT_printf(0,"\r\n[save]\r\n");
+					data_tmp = valve_params_flash;
 					break;
 		case MODBUS_SYS_APPLY : coder_evt_gather();
+					data_tmp = 0;
 					break;
 		default :               break;
 	    }
-	    data_tmp = 0;
 	}
 	else
 	{
@@ -346,7 +350,8 @@ void hmi_w(uint16_t addr, uint16_t num)
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET);//PB12置高电平，使能写
 #endif
     status = HAL_UART_Transmit(&UART_HMI.Handle,UART_HMI.TxBuffer,index,5000);
-    SEGGER_RTT_printf(0,"\r\n[hmi_w]status:%x\r\n",status);
+    status = status;
+    //SEGGER_RTT_printf(0,"\r\n[hmi_w]status:%x\r\n",status);
 #ifdef  USE_UART3_485
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12置低电平，使能读
 #endif

@@ -51,9 +51,11 @@ typedef struct UART_HMI_s
 #define MODBUS_TYP_HIGH  0X0030//高压时间参数类型代码
 
 #if defined(USE_UART3_485)
-#define USART_HMI  USART3
+#define USART_HMI      USART3
+#define USART_HMI_IRQ  USART3_IRQn
 #elif defined(USE_UART1_232)
-#define USART_HMI  USART1
+#define USART_HMI      USART1
+#define USART_HMI_IRQ  USART1_IRQn
 #endif
 
 //接收缓冲输出指针移位的函数块宏定义
