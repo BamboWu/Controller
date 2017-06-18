@@ -16,12 +16,13 @@ void cmd_h(void)
     SEGGER_RTT_printf(0,    "l\tload valve params.\r\n");
     SEGGER_RTT_printf(0,    "s\tstore valve params.\r\n");
     SEGGER_RTT_printf(0,    "p\tprint valve params.\r\n");
-    SEGGER_RTT_printf(0,    "m\tmodefy valve params.\r\n");
+    SEGGER_RTT_printf(0,    "m\tmodify valve params.\r\n");
     SEGGER_RTT_printf(0,    "c\tchange channel state manually.\r\n");
     SEGGER_RTT_printf(0,    "i\tinsert a coder event manually.\r\n");
     SEGGER_RTT_printf(0,    "r\tremove a coder event manually.\r\n");
     SEGGER_RTT_printf(0,    "g\tgather coder event from valve params.\r\n");
     SEGGER_RTT_printf(0,    "d\tdisplay coder event chain.\r\n");
+    SEGGER_RTT_printf(0,    "e\terase valve params in flash.\r\n");
 }
 
 /**@breif  读取通道参数的命令函数
@@ -303,6 +304,7 @@ void cmd_d(void)
 {
     extern coder_evt_t * pcoder_evt_first;
     coder_evt_t * p_coder_evt = pcoder_evt_first;
+    extern TIM_HandleTypeDef Tim8Handle;
 
     while(p_coder_evt != NULL)
     {
@@ -312,7 +314,14 @@ void cmd_d(void)
 			  p_coder_evt->evt_type);
 	p_coder_evt = p_coder_evt -> next;
     }
-	SEGGER_RTT_printf(0,"\r\n");
+    SEGGER_RTT_printf(0,"\r\n%4d -> %4d -> %4d\r\n",Tim8Handle.Instance->CCR4,Tim8Handle.Instance->CNT,Tim8Handle.Instance->CCR3);
+}
+
+/**@brief  擦除flash中通道参数的命令函数
+ */
+void cmd_e(void)
+{
+    valve_params_erase();
 }
 
 /**@brief  字符交互界面
@@ -366,6 +375,10 @@ void cmd_main(void)
 	case 'd':
 	case 'D':
 	    cmd_d();
+	    break;
+	case 'e':
+	case 'E':
+	    valve_params_erase();
 	    break;
 
 	default: break;

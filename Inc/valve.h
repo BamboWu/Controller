@@ -58,4 +58,5 @@ void valve_params_load(void);
 void valve_params_store(void);
 void valve_params_modify(uint8_t channel, valve_modify_t new_param);
 void valve_params_display(uint8_t channel, valve_display_t * p_param);
+void valve_params_erase(void);
 #endif /* __VALVE_H */

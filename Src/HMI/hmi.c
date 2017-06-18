@@ -196,6 +196,7 @@ void hmi_r(uint16_t addr, uint16_t num)
     extern  uint8_t minute;
     extern  uint8_t hour;
     extern  uint16_t coder_division;
+    extern  uint8_t valve_params_flash;
 
     UART_HMI.TxBuffer[2] = num << 1;//字节数是寄存器数的两倍
 
@@ -208,6 +209,8 @@ void hmi_r(uint16_t addr, uint16_t num)
 		case MODBUS_SYS_HOUR : data = hour;
 				       break;
 		case MODBUS_SYS_MIN  : data = minute;
+				       break;
+		case MODBUS_SYS_SAVE : data = valve_params_flash;
 				       break;
 		default  : data = 0;   break;
 	    }
@@ -279,7 +282,6 @@ void hmi_w(uint16_t addr, uint16_t num)
 	    {
 		case MODBUS_SYS_SAVE  : 
 			                valve_params_store();
-					//SEGGER_RTT_printf(0,"\r\n[save]\r\n");
 					data_tmp = valve_params_flash;
 					break;
 		case MODBUS_SYS_APPLY : coder_evt_gather();
