@@ -4,6 +4,7 @@ UART_HMI_t      UART_HMI = {0};
 
 TIM_HandleTypeDef  Tim6Handle;    //用于对modbus单次传输计timeout
 //TIM_OnePulse_InitTypeDef OPConfig;//用于配置单次计时的结构体
+uint16_t   hmi_test_chan = 0;
 
 /**@brief  从接收Buffer中读取n字节的函数
  *
@@ -197,6 +198,7 @@ void hmi_r(uint16_t addr, uint16_t num)
     extern  uint8_t hour;
     extern  uint16_t coder_division;
     extern  uint8_t valve_params_flash;
+    extern  uint8_t  prog_status; //程序运行状态字
 
     UART_HMI.TxBuffer[2] = num << 1;//字节数是寄存器数的两倍
 
@@ -211,6 +213,10 @@ void hmi_r(uint16_t addr, uint16_t num)
 		case MODBUS_SYS_MIN  : data = minute;
 				       break;
 		case MODBUS_SYS_SAVE : data = valve_params_flash;
+				       break;
+		case MODBUS_SYS_PROG : data = prog_status;
+				       break;
+		case MODBUS_SYS_CHAN : data = hmi_test_chan;
 				       break;
 		default  : data = 0;   break;
 	    }
@@ -269,6 +275,7 @@ void hmi_w(uint16_t addr, uint16_t num)
     extern  valve_param_t valve_params[];
     extern  uint16_t coder_division;
     extern  uint8_t  valve_params_flash;
+    extern  uint8_t  prog_status; //程序运行状态字
 
     //SEGGER_RTT_printf(0,"\r\n[hmi_w]addr=%4x,num=%4x\r\n",addr,num);
     UART_HMI.TxBuffer[index++] = (addr & 0xFF00) >> 8;
@@ -286,6 +293,13 @@ void hmi_w(uint16_t addr, uint16_t num)
 					break;
 		case MODBUS_SYS_APPLY : coder_evt_gather();
 					data_tmp = 0;
+					break;
+		case MODBUS_SYS_PROG  : hmi_rxbuf_out(pRxBuf_out,2,&data_tmp);
+					prog_status &= ~PROG_HMI_MSK;//清楚停止测试位
+					prog_status |= data_tmp;//根据发送数据置
+					break;
+		case MODBUS_SYS_CHAN  : hmi_rxbuf_out(pRxBuf_out,2,&data_tmp);
+					hmi_test_chan = data_tmp;
 					break;
 		default :               break;
 	    }
@@ -358,8 +372,89 @@ void hmi_w(uint16_t addr, uint16_t num)
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_RESET);//PB12置低电平，使能读
 #endif
 
+    hmi_di();
     //coder_evt_gather();
 }
+
+/**@brief  通过HMI交互界面实现DI相类似功能的函数
+ */
+void hmi_di(void)
+{
+  uint8_t channel;
+  extern uint8_t  prog_status; //程序运行状态字
+  extern valve_param_t valve_params[CHANNEL_NUM+1];
+  extern uint16_t high_left[CHANNEL_NUM+1]; //高压剩余ms数，第0元素弃用
+  static uint16_t hmi_test_chan_old = 0xFF; //之前在测试的通道
+  uint16_t hmi_test_chan_diff;//前后测试通道的差异
+
+  if(prog_status & PROG_HMI_STOP)
+  {
+	HAL_NVIC_DisableIRQ(EXTI15_10_IRQn); //关闭编码器Z相中断
+	HAL_NVIC_DisableIRQ(TIM8_CC_IRQn);   //关闭编码器AB相中断
+	    
+	//关闭所有通道输出
+	for(channel=1;channel<=CHANNEL_NUM;channel++)
+	{
+	    valve_channel_off(channel,1);
+    	    valve_channel_off(channel,0);
+	}
+	prog_status |= PROG_HMI_CTRL;
+	hmi_test_chan_old = 0xFF;//这样下一次进入测试时会把所有通道都先关闭
+	hmi_test_chan = 0;
+  }
+  else if(prog_status & PROG_HMI_TEST)
+  {
+      	HAL_NVIC_DisableIRQ(EXTI15_10_IRQn); //关闭编码器Z相中断
+	HAL_NVIC_DisableIRQ(TIM8_CC_IRQn);   //关闭编码器AB相中断
+
+	//if(prog_status & PROG_HMI_CTRL); //不是第一次进入测试
+	//else
+	//{
+	//    //关闭所有通道输出
+	//    for(channel=1;channel<=CHANNEL_NUM;channel++)
+	//    {
+	//        valve_channel_off(channel,1);
+    	//        valve_channel_off(channel,0);
+	//    }
+	//}
+	hmi_test_chan_diff = hmi_test_chan^hmi_test_chan_old;
+	for(channel=1;channel<=CHANNEL_NUM;channel++)
+	{
+	    if(hmi_test_chan_diff&(0x0001<<channel))//该通道有变动
+	    {
+		if(hmi_test_chan&(0x0001<<channel))//该通道变为打开
+		{
+		    valve_channel_on(channel);
+	            high_left[channel]=valve_params[channel].high_duration;
+		}
+		else//该通道变为关闭
+		{
+		    valve_channel_off(channel,1);
+		    valve_channel_off(channel,0);
+		}
+	    }
+	}
+	hmi_test_chan_old = hmi_test_chan;//更新测试通道
+	prog_status |= PROG_HMI_CTRL;
+  }
+  else if(prog_status & PROG_HMI_CTRL)//退出前
+  {
+	 prog_status &= ~PROG_HMI_CTRL;
+	 //清除停止测试位和HMI位控记录位
+         HAL_NVIC_EnableIRQ(EXTI15_10_IRQn); //开启编码器Z相中断
+         HAL_NVIC_EnableIRQ(TIM8_CC_IRQn);   //开启编码器AB相中断
+         //关闭所有通道输出
+         for(channel=1;channel<=CHANNEL_NUM;channel++)
+         {
+             valve_channel_off(channel,1);
+             valve_channel_off(channel,0);
+         }
+	 hmi_test_chan_old = 0xFF;//这样下一次进入测试时会把所有通道都先关闭
+	 hmi_test_chan = 0;
+  }
+
+}
+
 /**@brief  modbus响应调试程序
  *
  */

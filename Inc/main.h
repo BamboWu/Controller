@@ -55,8 +55,10 @@
 #define PROG_DI_TEST   0x02
 #define PROG_HMI_STOP  0X10
 #define PROG_HMI_TEST  0X20
-#define PROG_STOP_MSK  PROG_DI_STOP|PROG_HMI_STOP
-#define PROG_TEST_MSK  PROG_DI_TEST|PROG_HMI_STOP
+#define PROG_HMI_CTRL  0X40
+#define PROG_STOP_MSK  (PROG_DI_STOP|PROG_HMI_STOP)
+#define PROG_TEST_MSK  (PROG_DI_TEST|PROG_HMI_TEST)
+#define PROG_HMI_MSK   (PROG_HMI_STOP|PROG_HMI_TEST)
 /* Exported functions ------------------------------------------------------- */
 
 #endif /* __MAIN_H */

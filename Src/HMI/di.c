@@ -31,12 +31,12 @@ void di_main(void)
   extern uint8_t  test_channel;//进行测试的通道
   extern valve_param_t valve_params[CHANNEL_NUM+1];
   extern uint16_t high_left[CHANNEL_NUM+1]; //高压剩余ms数，第0元素弃用
-  uint8_t test_chan_old = 0;   //之前在测试的通道
+  static uint8_t test_chan_old = 0;   //之前在测试的通道
 
   di = ~(GPIOC->IDR & 0x0000FC00) >> 10;
 
   //紧急停止的循环
-  do{
+  //do{
 	if(di & PROG_DI_STOP)
 	{
 	    HAL_NVIC_DisableIRQ(EXTI15_10_IRQn); //关闭编码器Z相中断
@@ -52,6 +52,7 @@ void di_main(void)
 	    prog_status |= PROG_STOP_MSK;
 	    di = ~(GPIOC->IDR & 0x0000FC00) >> 10;
 	}
+	else if(prog_status & PROG_HMI_STOP);    //急停优先级总高于测试
 	else if(di & PROG_DI_TEST)
 	{
 	    HAL_NVIC_DisableIRQ(EXTI15_10_IRQn); //关闭编码器Z相中断
@@ -66,16 +67,19 @@ void di_main(void)
 	            valve_channel_off(channel,1);
     	            valve_channel_off(channel,0);
 	        }
-		valve_channel_on(test_channel);
-		high_left[test_channel] = valve_params[test_channel].high_duration;
+		if(0<test_channel&&test_channel<CHANNEL_NUM+1)
+		{
+		    valve_channel_on(test_channel);
+		    high_left[test_channel] = valve_params[test_channel].high_duration;
+		}
 		test_chan_old = test_channel;//更新测试通道
 	    }
 
-	    prog_status &= ~PROG_STOP_MSK;//清除停止位
-	    prog_status |= PROG_TEST_MSK;
+	    prog_status &= ~PROG_DI_STOP;//清除停止位
+	    prog_status |= PROG_DI_TEST;
 	    di = ~(GPIOC->IDR & 0x0000FC00) >> 10;
 	}
-	else if(prog_status & (PROG_STOP_MSK|PROG_TEST_MSK))//退出前
+	else if(prog_status & (PROG_DI_STOP|PROG_DI_TEST))//退出前
 	{
 	    prog_status &= ~(PROG_STOP_MSK|PROG_TEST_MSK);//清除停止测试位
             HAL_NVIC_EnableIRQ(EXTI15_10_IRQn); //开启编码器Z相中断
@@ -87,6 +91,6 @@ void di_main(void)
               	valve_channel_off(channel,0);
             }
 	}
-  }while(prog_status & (PROG_STOP_MSK|PROG_TEST_MSK));
+  //}while(prog_status & (PROG_STOP_MSK|PROG_TEST_MSK));
 
 }

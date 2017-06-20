@@ -6,6 +6,7 @@
 #include "crc.h"
 #include "valve.h"
 #include "coder.h"
+#include "main.h"
 
 #define  USE_UART3_485
 //#define  USE_UART1_232
@@ -45,6 +46,8 @@ typedef struct UART_HMI_s
 #define MODBUS_SYS_MIN   0X1000//运行分钟数记录地址
 #define MODBUS_SYS_SAVE  0X3000//保存参数到flash
 #define MODBUS_SYS_APPLY 0X4000//应用当前参数
+#define MODBUS_SYS_PROG  0X8000//程序运行状态
+#define MODBUS_SYS_CHAN  0X9000//测试通道
 #define MODBUS_TYP_OFF   0X0000//关闭角参数类型代码
 #define MODBUS_TYP_ON    0X0010//开启角参数类型代码
 #define MODBUS_TYP_VALID 0X0020//开关对有效值参数类型代码
@@ -69,6 +72,7 @@ void hmi_init(void);
 void hmi_main(void);
 void hmi_r(uint16_t addr, uint16_t num);
 void hmi_w(uint16_t addr, uint16_t num);
+void hmi_di(void);
 void hmi_test_resp(void);
 
 #ifdef USE_UART3_485
