@@ -59,8 +59,8 @@ extern TIM_HandleTypeDef Tim6Handle;
 extern TIM_HandleTypeDef Tim5Handle;
 extern UART_HMI_t        UART_HMI;
 
-extern valve_param_t valve_params[13];
-uint16_t high_left[13] = {0};              //高压剩余ms数，第0元素弃用
+extern valve_param_t valve_params[CHANNEL_NUM+1];
+uint16_t high_left[CHANNEL_NUM+1] = {0};           //高压剩余ms数，第0元素弃用
 uint8_t hsecond = 0;
 uint8_t minute = 0;
 uint8_t hour = 0;
@@ -195,7 +195,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (&Tim5Handle == htim)
   {
      uint8_t channel_NO;
-     for(channel_NO = 1;12 >= channel_NO;++channel_NO)
+     for(channel_NO = 1;CHANNEL_NUM >= channel_NO;++channel_NO)
      {
 	 if(1 < high_left[channel_NO])//未归零
 	 {

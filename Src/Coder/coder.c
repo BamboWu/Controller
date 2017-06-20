@@ -222,7 +222,7 @@ void coder_evt_remove(coder_evt_t evt)
  */
 void coder_evt_gather(void)
 {
-  extern valve_param_t valve_params[13];
+  extern valve_param_t valve_params[CHANNEL_NUM+1];
   uint8_t channel,i;
   coder_evt_t evt;
 
@@ -241,7 +241,7 @@ void coder_evt_gather(void)
   pcoder_evt_free = &coder_evts[0];
   pcoder_evt_first = NULL;
 
-  for(channel=1;channel<=12;channel++)
+  for(channel=1;channel<=CHANNEL_NUM;channel++)
   {
       evt.evt_channel = channel;
       //SEGGER_RTT_printf(0,"\r\n[gather]chan=%x\r\n",evt.evt_channel);

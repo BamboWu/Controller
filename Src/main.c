@@ -52,6 +52,8 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef Tim7Handle;             //TIM7的结构体
+uint8_t prog_status = 0;                  //程序运行状态字
+uint8_t test_channel = 0;                 //进行测试的通道
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);            //系统时钟配置函数
@@ -90,6 +92,7 @@ int main(void)
 
   valve_init();
   coder_init(1000,1);//1000P/R的编码器，编码器露出的轴朝自己，顺时针转计数增加
+  di_init();
   hmi_init();
 
   cmd_h();//打印一遍命令行交互界面的帮助信息
@@ -99,6 +102,7 @@ int main(void)
     /* Insert delay 100 ms */
     //HAL_Delay(100);
     //SEGGER_RTT_printf(0,"\r\n[loop%3d]\r\n",i++);
+    di_main();
     cmd_main();
     hmi_main();
     //hmi_test_resp();
@@ -195,7 +199,6 @@ void Indication_Config(void)
   /* -3- Start the TIM Base generation in interrupt mode */
   if (HAL_TIM_Base_Start_IT(&Tim7Handle) != HAL_OK)
 	  SEGGER_RTT_printf(0,"\r\n[Indication_Config]TIM IT Init fail\r\n");
-
 }
 
 #ifdef  USE_FULL_ASSERT

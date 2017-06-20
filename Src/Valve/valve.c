@@ -2,7 +2,7 @@
 
 static uint32_t m_valve_state = 0;   //内部记录电磁阀通路输出状态的变量
 
-valve_param_t valve_params[13] = {0};//记录电磁阀通路通断参数的变量，第0元素弃用
+valve_param_t valve_params[CHANNEL_NUM+1] = {0};//记录电磁阀通路通断参数的变量，第0元素弃用
 
 uint8_t valve_params_flash = 0; //标记参数在flash中的状态的变量
 
@@ -31,6 +31,10 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
 		mask32 |= 0XFF00FFFF;  //BANK2对应最高8个通路
 		state32 <<= 16;
 		break;
+    case BANK3: mask32 <<= 24;
+		mask32 |= 0X00FFFFFF;  //BANK3对应才是真正最高8个通路
+		state32 <<= 24;
+		break;
     default   : mask32 = 0XFFFFFFFF;
   }
 		state32 &= ~mask32;    //掩去所选BANK以外的新状态数据
@@ -50,6 +54,9 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
     case BANK2: toset16 = (~m_valve_state & 0X00FF0000)>>16; //BANK2对应最高8个通路
 		toclr16 = ( m_valve_state & 0X00FF0000)>>16;
 		break;
+    case BANK3: toset16 = (~m_valve_state & 0XFF000000)>>24; //BANK3对应才是真正最高8个通路
+		toclr16 = ( m_valve_state & 0XFF000000)>>24;
+		break;
     default   : toset16 = toclr16 = 0X0000;
   }
 
@@ -66,6 +73,7 @@ static void do_valve_set(uint8_t bank, uint8_t mask, uint8_t state)
 		break;
     case BANK2: HAL_GPIO_WritePin(GPIOB,GPIO_PIN_2,GPIO_PIN_SET);//上升沿锁数据到U912
 		break;
+    case BANK3: //因为当前硬件设计总共12通道，才用了3片374锁存，BANK3不存在的
     default   : HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2,GPIO_PIN_RESET);
   }
 		//HAL_Delay(1);//延时1ms
@@ -145,6 +153,7 @@ void valve_channel_on(uint8_t channel)
     case  2: mask8 <<= 2;
     case  1: do_valve_set(BANK0,~mask8,mask8);
 	     break;
+    default: break;
   }
 }
 
@@ -180,6 +189,7 @@ void valve_channel_off(uint8_t channel, uint8_t Hi_Lo)
     case  1: mask8 <<= Hi_Lo; //高压通路总比同通道的低压通路高一位
              do_valve_set(BANK0,~mask8,~mask8);
 	     break;
+    default: break;
   }
 }
 
@@ -199,7 +209,7 @@ void valve_params_load(void)
 	return;//退出
     }
     //遍历填入12个通道参数
-    for(channel=1,flash_addr=FLASH_ADDR+4;channel<=12;channel++)
+    for(channel=1,flash_addr=FLASH_ADDR+4;channel<=CHANNEL_NUM;channel++)
     {
 	p_valve_param = &valve_params[channel];
 	//为每个通道遍历填入(ON_OFF_MAX)对输出关闭设定
@@ -255,7 +265,7 @@ void valve_params_store(void)
 	    else//页擦除成功
 	    {
 		//遍历存入12个通道参数
-		for(channel=1,flash_addr=FLASH_ADDR+4;channel<=12;channel++)
+		for(channel=1,flash_addr=FLASH_ADDR+4;channel<=CHANNEL_NUM;channel++)
 	     	{
 		    p_valve_param = &valve_params[channel];
 	    	    //为每个通道遍历存入(ON_OFF_MAX)对 输出关闭时间
@@ -268,7 +278,7 @@ void valve_params_store(void)
 			{
 	    		    SEGGER_RTT_printf(0,"\r\n[valve_params_store]valve_params[%x].on_offs[%x][0] err:%x",channel,on_off_id,HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,flash_addr,p_valve_param->on_offs[on_off_id][0]));
 			 SEGGER_RTT_WaitKey();
-			    channel = 13;
+			    channel = CHANNEL_NUM+1;
 			    break;
 			}
 			flash_addr += 2;
@@ -279,7 +289,7 @@ void valve_params_store(void)
 			{
 	    		    SEGGER_RTT_printf(0,"\r\n[valve_params_store]valve_params[%x].on_offs[%x][1] err:%x",channel,on_off_id,HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,flash_addr,p_valve_param->on_offs[on_off_id][1]));
 			 SEGGER_RTT_WaitKey();
-			    channel = 13;
+			    channel = CHANNEL_NUM+1;
 		    	    break;
 			}
 			flash_addr += 2;

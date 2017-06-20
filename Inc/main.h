@@ -46,10 +46,17 @@
 #include "coder.h"
 #include "cmd.h"
 #include "hmi.h"
+#include "di.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
+#define PROG_DI_STOP   0X01
+#define PROG_DI_TEST   0x02
+#define PROG_HMI_STOP  0X10
+#define PROG_HMI_TEST  0X20
+#define PROG_STOP_MSK  PROG_DI_STOP|PROG_HMI_STOP
+#define PROG_TEST_MSK  PROG_DI_TEST|PROG_HMI_STOP
 /* Exported functions ------------------------------------------------------- */
 
 #endif /* __MAIN_H */

@@ -8,7 +8,10 @@
 #define BANK0 0X01
 #define BANK1 0X02
 #define BANK2 0X04
+#define BANK3 0X08
 
+#define CHANNEL_NUM 12
+//阀门通道数，受modbus通信地址制约制约，应小于16
 #define ON_OFF_MAX 4
 //最多可设置的开关对数，受on_offs_mask制约，应小于16
 #define FLASH_ADDR ((uint32_t)0x0801FC00)

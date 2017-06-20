@@ -91,6 +91,8 @@ C_SOURCE_FILES += $(abspath ../Src/HMI/cmd.c)  #命令行交互界面函数
 C_SOURCE_FILES += $(abspath ../Src/HMI/hmi.c)  #命令行交互界面函数 
 #sources for CRC #提供CRC校验的函数源文件
 C_SOURCE_FILES += $(abspath ../Src/HMI/crc.c)  #CRC校验计算函数 
+#sources for DI #提供数字输入接口的函数源文件
+C_SOURCE_FILES += $(abspath ../Src/HMI/di.c)  #命令行交互界面函数 
 
 #includes common to all targets
 INC_PATHS  = -I$(abspath $(DRIVER_PATH)/CMSIS/Include) #包含CMSIS提供的头文件
