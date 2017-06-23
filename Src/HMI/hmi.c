@@ -218,6 +218,12 @@ void hmi_r(uint16_t addr, uint16_t num)
 				       break;
 		case MODBUS_SYS_CHAN : data = hmi_test_chan;
 				       break;
+		case MODBUS_SYS_DEG  : data = (TIM8->CNT * 3600 + (coder_division>>1)) / coder_division;
+				       break;
+		case MODBUS_SYS_LOW  : data = valve_state_query() & 0x0000FFFF;
+				       break;
+		case MODBUS_SYS_HIGH : data = valve_state_query() >> 16;
+				       break;
 		default  : data = 0;   break;
 	    }
     	}

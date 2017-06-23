@@ -57,6 +57,8 @@ void valve_init(void);
 void valve_channel_on(uint8_t channel);
 void valve_channel_off(uint8_t channel, uint8_t Hi_Lo);
 
+uint32_t valve_state_query(void);
+
 void valve_params_load(void);
 void valve_params_store(void);
 void valve_params_modify(uint8_t channel, valve_modify_t new_param);

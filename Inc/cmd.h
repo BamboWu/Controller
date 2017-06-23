@@ -17,6 +17,7 @@ void cmd_r(void);
 void cmd_g(void);
 void cmd_d(void);
 void cmd_e(void);
+void cmd_q(void);
 
 void cmd_main(void);
 

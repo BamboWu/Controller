@@ -48,6 +48,9 @@ typedef struct UART_HMI_s
 #define MODBUS_SYS_APPLY 0X4000//应用当前参数
 #define MODBUS_SYS_PROG  0X8000//程序运行状态
 #define MODBUS_SYS_CHAN  0X9000//测试通道
+#define MODBUS_SYS_DEG   0x5000//当前角度
+#define MODBUS_SYS_LOW   0X6000//低压通道状态
+#define MODBUS_SYS_HIGH  0X7000//高压通道状态
 #define MODBUS_TYP_OFF   0X0000//关闭角参数类型代码
 #define MODBUS_TYP_ON    0X0010//开启角参数类型代码
 #define MODBUS_TYP_VALID 0X0020//开关对有效值参数类型代码

@@ -193,6 +193,34 @@ void valve_channel_off(uint8_t channel, uint8_t Hi_Lo)
   }
 }
 
+/**@brief 查询电磁阀通路的状态
+ */
+uint32_t valve_state_query(void)
+{
+    uint8_t  i;
+    uint32_t state = 0;
+    uint32_t tmp;
+    uint32_t msk;
+
+    //先记录高压通道在低16bit
+    for(i=0,tmp=m_valve_state,msk=0x0001;i<CHANNEL_NUM;i++)
+    {
+	tmp >>= 1;//高压通道之间有第压间隔，所以靠拢一位
+	state |= (tmp&msk);//记录一位状态
+	msk <<= 1;//往state记录的位置每次左移一位
+    }
+    state <<= 16;//把高压通道的状态放到高16bit
+    //记录低压通道在低16bit
+    for(i=0,tmp=m_valve_state,msk=0x0001;i<CHANNEL_NUM;i++)
+    {
+	state |= (tmp&msk);//记录一位状态
+	tmp >>= 1;//低压通道之间有高压间隔，所以靠拢一位
+	msk <<= 1;//往state记录的位置每次左移一位
+    }
+
+    return (state << 1);//因为现在valve系列的代码中，把通道1做了通道0
+}
+
 /**@brief 用于从flash中读取电磁阀通路参数的函数
  */
 void valve_params_load(void)

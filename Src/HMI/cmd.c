@@ -23,6 +23,7 @@ void cmd_h(void)
     SEGGER_RTT_printf(0,    "g\tgather coder event from valve params.\r\n");
     SEGGER_RTT_printf(0,    "d\tdisplay coder event chain.\r\n");
     SEGGER_RTT_printf(0,    "e\terase valve params in flash.\r\n");
+    SEGGER_RTT_printf(0,    "q\tquery channel state.\r\n");
 }
 
 /**@breif  读取通道参数的命令函数
@@ -324,6 +325,32 @@ void cmd_e(void)
     valve_params_erase();
 }
 
+/**@brief  通道状态查询
+ */
+void cmd_q(void)
+{
+    uint8_t  i;
+    uint32_t state;
+    state = valve_state_query();
+    SEGGER_RTT_printf(0,"\r\nIdx :FEDCBA9876543210");
+    SEGGER_RTT_printf(0,"\r\nHigh:");
+    for(i=0;i<16;i++)
+    {
+	if(state&(0x80000000>>i))
+	    SEGGER_RTT_printf(0,"O");
+	else
+	    SEGGER_RTT_printf(0,"-");
+    }
+    SEGGER_RTT_printf(0,"\r\nLow: ");
+    for(i=0;i<16;i++)
+    {
+	if(state&(0x00008000>>i))
+	    SEGGER_RTT_printf(0,"O");
+	else
+	    SEGGER_RTT_printf(0,"-");
+    }
+}
+
 /**@brief  字符交互界面
  *
  * @detail 通过JLinkRTT输入输出，敲击提示的一些按键可以配置参数、控制运转
@@ -380,7 +407,10 @@ void cmd_main(void)
 	case 'E':
 	    valve_params_erase();
 	    break;
-
+	case 'q':
+	case 'Q':
+	    cmd_q();
+	    break;
 	default: break;
     }  //switch(key)
 }
