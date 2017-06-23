@@ -63,12 +63,12 @@ void hmi_init(void)
 
     /* -2- Initialize TIM6 peripheral as follows: //modbus要求1.5char以上
          + Period = 4 - 1                         //的间隔认为一次传输结束
-         + Prescaler = 50000 - 1                  //9600baud时，320Hz-3char
-         + ClockDivision = 0                      //480Hz-2char 72MHz时钟
-         + Counter direction = Up                 //故需200,000分频
+         + Prescaler = 50000 - 1                  //115200baud时，3840Hz-3char
+         + ClockDivision = 0                      //2560Hz-2char 72MHz时钟
+         + Counter direction = Up                 //故需20,000分频
     */
     Tim6Handle.Init.Period            = 4 - 1;
-    Tim6Handle.Init.Prescaler         = 50000 - 1;
+    Tim6Handle.Init.Prescaler         = 5000 - 1;
     Tim6Handle.Init.ClockDivision     = 0;
     Tim6Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
     Tim6Handle.Init.RepetitionCounter = 0;
@@ -80,7 +80,7 @@ void hmi_init(void)
 
     UART_HMI.Handle.Instance        = USART_HMI;
 
-    UART_HMI.Handle.Init.BaudRate   = 9600;
+    UART_HMI.Handle.Init.BaudRate   = 115200;
     UART_HMI.Handle.Init.WordLength = UART_WORDLENGTH_8B;
     UART_HMI.Handle.Init.Parity     = UART_PARITY_NONE;
     UART_HMI.Handle.Init.StopBits   = UART_STOPBITS_1;
